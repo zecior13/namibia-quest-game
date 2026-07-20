@@ -1,98 +1,141 @@
 import { BaseScene } from "./BaseScene.js";
 import { HEROES, STAT_LABELS } from "../data/heroes.js";
 
+const HERO_HOTSPOTS = {
+  driver: { x: 94, y: 284, w: 98, h: 190 },
+  tracker: { x: 154, y: 294, w: 86, h: 188 },
+  logistician: { x: 242, y: 308, w: 102, h: 196 },
+  daredevil: { x: 46, y: 458, w: 104, h: 190 },
+  chatterbox: { x: 142, y: 474, w: 116, h: 224 },
+  diva: { x: 248, y: 482, w: 104, h: 204 }
+};
+
 export class HeroSelectScene extends BaseScene {
   constructor(){
     super("HeroSelectScene");
-    this.selectedHeroId = "driver";
+    this.selectedHeroId = null;
   }
 
   create(){
-    this.drawPaperBackground();
-    this.addTitle(22, 24, "BOHATER", "Wybierz postać", "Każdy bohater ma inny rytm gry. Różnice są odczuwalne, ale żaden wybór nie blokuje przygody.");
-    this.drawCards();
-    this.drawPreview();
+    this.addCoverImage("heroSelectArt");
+    this.addShade();
+    this.addHeader();
+    this.addHeroHotspots();
+    this.addFooter();
   }
 
-  drawCards(){
-    const startY = 162;
-    HEROES.forEach((hero, index)=>{
-      const col = index % 2;
-      const row = Math.floor(index / 2);
-      const x = 22 + col * 177;
-      const y = startY + row * 122;
-      this.drawHeroPortrait(x, y, 72, 98, hero, hero.id === this.selectedHeroId);
-      this.add.text(x + 82, y + 10, hero.name, {
-        fontFamily:"Georgia",
-        fontSize:"13px",
-        fontStyle:"bold",
-        color:"#102b3f",
-        wordWrap:{ width:86 }
-      });
-      this.add.text(x + 82, y + 51, hero.role, {
-        fontFamily:"Georgia",
-        fontSize:"10px",
-        fontStyle:"bold",
-        color:"#7f5a35",
-        wordWrap:{ width:86 }
-      });
-      this.add.zone(x, y, 166, 106).setOrigin(0).setInteractive({ useHandCursor:true }).on("pointerdown", ()=>{
-        this.selectedHeroId = hero.id;
-        this.scene.restart({ selectedHeroId:this.selectedHeroId });
-      });
+  addShade(){
+    const g = this.add.graphics();
+    g.fillStyle(0x0d1620, 0.16);
+    g.fillRect(0, 0, this.W, this.H);
+    g.fillStyle(0x0b1620, this.selectedHeroId ? 0.42 : 0.22);
+    g.fillRect(0, this.H - 170, this.W, 170);
+  }
+
+  addHeader(){
+    this.addOverlayText(20, 22, "WYBÓR BOHATERA", 14, this.W - 40).setLetterSpacing(2);
+    this.addOverlayText(20, 48, "Dotknij postaci w garażu", 25, this.W - 40);
+  }
+
+  addHeroHotspots(){
+    HEROES.forEach(hero=>{
+      const spot = HERO_HOTSPOTS[hero.id];
+
+      if(!spot){
+        return;
+      }
+
+      if(hero.id === this.selectedHeroId){
+        const g = this.add.graphics();
+        g.lineStyle(4, 0xffd96b, 0.88);
+        g.strokeRoundedRect(spot.x - 4, spot.y - 4, spot.w + 8, spot.h + 8, 22);
+        g.fillStyle(0xffd96b, 0.12);
+        g.fillRoundedRect(spot.x - 4, spot.y - 4, spot.w + 8, spot.h + 8, 22);
+      }
+
+      this.add.zone(spot.x, spot.y, spot.w, spot.h)
+        .setOrigin(0)
+        .setInteractive({ useHandCursor:true })
+        .on("pointerdown", ()=>{
+          this.selectedHeroId = hero.id;
+          this.children.removeAll();
+          this.create();
+        });
     });
   }
 
-  init(data){
-    if(data.selectedHeroId){
-      this.selectedHeroId = data.selectedHeroId;
+  addFooter(){
+    if(!this.selectedHeroId){
+      this.addOverlayText(22, this.H - 112, "To ma być wybór postaci jak w grze RPG: dotknij bohatera, zobacz jego cechy i nadaj imię.", 15, this.W - 44);
+      this.addSmallBack();
+      return;
     }
-  }
 
-  drawPreview(){
     const hero = HEROES.find(item=>item.id === this.selectedHeroId) || HEROES[0];
-    this.addPanel(22, 546, this.W - 44, 210);
-    this.add.text(42, 566, hero.name, {
+    this.add.text(22, this.H - 158, hero.name, {
       fontFamily:"Georgia",
-      fontSize:"22px",
+      fontSize:"23px",
       fontStyle:"bold",
-      color:"#102b3f"
+      color:"#fff3d2",
+      shadow:{ offsetY:3, color:"#1b120c", blur:8, fill:true }
     });
-    this.add.text(42, 596, hero.note, {
+    this.add.text(22, this.H - 128, hero.role, {
       fontFamily:"Georgia",
       fontSize:"13px",
       fontStyle:"bold",
-      color:"#42525c",
-      wordWrap:{ width:this.W - 84 },
-      lineSpacing:3
+      color:"#e8bd62",
+      shadow:{ offsetY:2, color:"#1b120c", blur:6, fill:true }
     });
-
-    let i = 0;
-    Object.keys(STAT_LABELS).forEach(stat=>{
-      const x = 42 + (i % 2) * 154;
-      const y = 650 + Math.floor(i / 2) * 42;
-      this.drawStat(x, y, STAT_LABELS[stat], hero.stats[stat]);
-      i += 1;
+    this.add.text(22, this.H - 106, hero.note, {
+      fontFamily:"Georgia",
+      fontSize:"13px",
+      fontStyle:"bold",
+      color:"#fff3d2",
+      lineSpacing:2,
+      shadow:{ offsetY:2, color:"#1b120c", blur:6, fill:true },
+      wordWrap:{ width:this.W - 44 }
     });
-
-    this.addButton(42, 772, this.W - 84, 50, "Nadaj imię i ruszaj", ()=>{
+    this.drawStats(hero);
+    this.addGameButton(22, this.H - 48, this.W - 44, 38, "Wybierz i nazwij postać", ()=>{
       const name = prompt("Imię postaci:", "Radek") || "Bohater";
       this.saveGamePatch({ heroId:hero.id, heroName:name, heroArchetype:hero.name, stats:hero.stats, progress:"windhoek" });
       this.scene.start("MapScene");
     });
   }
 
-  drawStat(x, y, label, value){
-    this.add.text(x, y, `${label} ${value}`, {
-      fontFamily:"Georgia",
-      fontSize:"12px",
-      fontStyle:"bold",
-      color:"#102b3f"
+  drawStats(hero){
+    let i = 0;
+    Object.keys(STAT_LABELS).forEach(stat=>{
+      const x = 22 + i * 89;
+      const y = this.H - 74;
+      this.add.text(x, y, `${STAT_LABELS[stat]} ${hero.stats[stat]}`, {
+        fontFamily:"Georgia",
+        fontSize:"10px",
+        fontStyle:"bold",
+        color:"#fff3d2",
+        shadow:{ offsetY:2, color:"#1b120c", blur:5, fill:true }
+      });
+      i += 1;
     });
+  }
+
+  addSmallBack(){
+    this.addGameButton(22, this.H - 48, 112, 38, "Wróć", () => this.scene.start("StartScene"), true);
+  }
+
+  addGameButton(x, y, w, h, label, callback, secondary = false){
     const g = this.add.graphics();
-    g.fillStyle(0xffffff, 0.65);
-    g.fillRoundedRect(x, y + 20, 122, 8, 99);
-    g.fillStyle(0x0f879f, 1);
-    g.fillRoundedRect(x, y + 20, 12.2 * value, 8, 99);
+    g.fillStyle(secondary ? 0x1b2c36 : 0x0f879f, secondary ? 0.76 : 0.92);
+    g.fillRoundedRect(x, y, w, h, 14);
+    g.lineStyle(2, 0xffe1a1, 0.22);
+    g.strokeRoundedRect(x, y, w, h, 14);
+    this.add.text(x + w / 2, y + h / 2, label, {
+      fontFamily:"Georgia",
+      fontSize:"16px",
+      fontStyle:"bold",
+      color:"#fff3d2",
+      shadow:{ offsetY:2, color:"#1b120c", blur:4, fill:true }
+    }).setOrigin(0.5);
+    this.add.zone(x, y, w, h).setOrigin(0).setInteractive({ useHandCursor:true }).on("pointerdown", callback);
   }
 }

@@ -160,4 +160,23 @@ export class BaseScene extends Phaser.Scene {
   getSave(){
     return JSON.parse(localStorage.getItem("namibiaQuestV2") || "{}");
   }
+
+  addCoverImage(key){
+    const image = this.add.image(this.W / 2, this.H / 2, key);
+    const scale = Math.max(this.W / image.width, this.H / image.height);
+    image.setScale(scale);
+    return image;
+  }
+
+  addOverlayText(x, y, text, size = 18, width = 320){
+    return this.add.text(x, y, text, {
+      fontFamily: "Georgia",
+      fontSize: `${size}px`,
+      fontStyle: "bold",
+      color: "#fff3d2",
+      lineSpacing: 3,
+      shadow: { offsetX: 0, offsetY: 3, color: "#1b120c", blur: 8, fill: true },
+      wordWrap: { width }
+    });
+  }
 }
