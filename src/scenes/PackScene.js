@@ -10,9 +10,9 @@ const ITEMS = [
   { id:"cooler", name:"Lodówka", dims:[2,3], crop:[627,836,627,418], tint:0x4a8a89 },
   { id:"compass", name:"Kompas", dims:[1,1], sourceKey:"packCompass", crop:[0,0,627,1254], tint:0x9b7732 },
   { id:"radio", name:"Radio", dims:[1,2], sourceKey:"packRadio", crop:[0,0,627,1254], tint:0x4f5e59 },
-  { id:"map", name:"Mapa", dims:[1,2], custom:true, tint:0x9d7042 },
-  { id:"rope", name:"Lina", dims:[1,2], custom:true, tint:0xa58452 },
-  { id:"flashlight", name:"Latarka", dims:[1,3], custom:true, tint:0x53666a }
+  { id:"foodcrate", name:"Skrzynia z prowiantem", dims:[3,1], custom:true, tint:0xb88a4b },
+  { id:"extinguisher", name:"Gaśnica", dims:[2,1], custom:true, tint:0xb43b2f },
+  { id:"gasstove", name:"Butla z palnikiem", dims:[2,1], custom:true, tint:0x277b82 }
 ];
 
 export class PackScene extends BaseScene {
@@ -368,7 +368,7 @@ export class PackScene extends BaseScene {
   }
 
   createItemVisual(item, width, height, x, y, rotation){
-    if(!["compass", "radio", "map", "rope", "flashlight"].includes(item.id)){
+    if(!["compass", "radio", "foodcrate", "extinguisher", "gasstove"].includes(item.id)){
       return this.add.image(x, y, `pack-${item.id}`)
         .setDisplaySize(width, height)
         // The source art is a standing object. Turning the footprint must not
@@ -378,60 +378,70 @@ export class PackScene extends BaseScene {
 
     const group = this.add.container(x, y);
     const g = this.add.graphics();
-    if(item.id === "map"){
-      const w = width * 0.78;
-      const h = height * 0.68;
-      g.fillStyle(0x65472d, 1);
-      g.fillRoundedRect(-w / 2 + 2, -h / 2 + 4, w, h, Math.max(2, width * 0.06));
-      g.fillStyle(0xd4b879, 1);
-      g.fillRoundedRect(-w / 2, -h / 2, w, h, Math.max(2, width * 0.06));
-      g.lineStyle(Math.max(1, width * 0.025), 0x80613b, 0.9);
-      g.strokeRoundedRect(-w / 2, -h / 2, w, h, Math.max(2, width * 0.06));
-      g.lineStyle(Math.max(1, width * 0.025), 0x9a6f41, 0.9);
-      g.lineBetween(-w * 0.24, -h * 0.18, w * 0.22, -h * 0.28);
-      g.lineBetween(-w * 0.18, h * 0.2, w * 0.28, h * 0.08);
-    }else if(item.id === "rope"){
-      const horizontal = rotation % 2 === 1;
-      const coilW = horizontal ? width * 0.72 : width * 0.52;
-      const coilH = horizontal ? height * 0.56 : height * 0.72;
-      g.lineStyle(Math.max(3, Math.min(width, height) * 0.12), 0x553d29, 1);
-      g.strokeEllipse(2, 4, coilW, coilH);
-      g.lineStyle(Math.max(2, Math.min(width, height) * 0.085), 0xc39b5e, 1);
-      g.strokeEllipse(0, 0, coilW, coilH);
-      g.strokeEllipse(0, 0, coilW * 0.66, coilH * 0.66);
+    if(item.id === "foodcrate"){
+      const horizontal = width >= height;
+      const crateW = horizontal ? width * 0.82 : height * 0.72;
+      const crateH = horizontal ? height * 0.72 : width * 0.82;
+      g.fillStyle(0x634328, 0.95);
+      g.fillRoundedRect(-crateW / 2 + 3, -crateH / 2 + 4, crateW, crateH, 3);
+      g.fillStyle(0xb88a4b, 1);
+      g.fillRoundedRect(-crateW / 2, -crateH / 2, crateW, crateH, 3);
+      g.lineStyle(Math.max(1, Math.min(width, height) * 0.07), 0x714a2c, 1);
+      g.strokeRoundedRect(-crateW / 2, -crateH / 2, crateW, crateH, 3);
+      g.lineBetween(-crateW * 0.35, -crateH * 0.32, crateW * 0.35, -crateH * 0.32);
+      g.lineBetween(-crateW * 0.35, crateH * 0.32, crateW * 0.35, crateH * 0.32);
+      g.fillStyle(0xd8b86e, 1);
+      const produce = horizontal ? [
+        [-crateW * 0.28, -crateH * 0.22, crateH * 0.22],
+        [0, -crateH * 0.3, crateH * 0.24],
+        [crateW * 0.25, -crateH * 0.18, crateH * 0.2]
+      ] : [[0, -crateH * 0.3, crateW * 0.22]];
+      produce.forEach(([px, py, radius])=>g.fillCircle(px, py, radius));
+      g.fillStyle(0x6f963f, 1);
+      g.fillTriangle(-crateW * 0.02, -crateH * 0.34, crateW * 0.1, -crateH * 0.58, crateW * 0.16, -crateH * 0.28);
+    }else if(item.id === "extinguisher"){
+      const horizontal = width >= height;
+      const bodyW = horizontal ? width * 0.62 : width * 0.34;
+      const bodyH = horizontal ? height * 0.58 : height * 0.72;
+      const bodyX = horizontal ? -width * 0.08 : 0;
+      const bodyY = horizontal ? 0 : height * 0.05;
+      g.fillStyle(0x641e1c, 0.95);
+      g.fillRoundedRect(bodyX - bodyW / 2 + 3, bodyY - bodyH / 2 + 4, bodyW, bodyH, bodyH * 0.22);
+      g.fillStyle(0xc33c30, 1);
+      g.fillRoundedRect(bodyX - bodyW / 2, bodyY - bodyH / 2, bodyW, bodyH, bodyH * 0.22);
+      g.lineStyle(Math.max(1, Math.min(width, height) * 0.06), 0xe06d48, 0.9);
+      g.strokeRoundedRect(bodyX - bodyW / 2, bodyY - bodyH / 2, bodyW, bodyH, bodyH * 0.22);
+      g.fillStyle(0xbfc1b2, 1);
       if(horizontal){
-        g.lineBetween(-coilW * 0.5, 0, -width * 0.42, height * 0.12);
-        g.lineBetween(coilW * 0.48, 0, width * 0.42, -height * 0.12);
+        g.fillRect(bodyX - bodyW * 0.38, -height * 0.42, bodyW * 0.3, height * 0.18);
+        g.lineStyle(Math.max(2, height * 0.08), 0x1e2928, 1);
+        g.lineBetween(bodyX + bodyW * 0.25, -bodyH * 0.25, width * 0.42, -height * 0.4);
       }else{
-        g.lineBetween(0, -coilH * 0.5, width * 0.18, -height * 0.4);
-        g.lineBetween(0, coilH * 0.48, -width * 0.18, height * 0.4);
+        g.fillRect(-bodyW * 0.3, -bodyH * 0.58, bodyW * 0.6, height * 0.16);
+        g.lineStyle(Math.max(2, width * 0.08), 0x1e2928, 1);
+        g.lineBetween(bodyW * 0.22, -bodyH * 0.42, width * 0.42, -height * 0.48);
       }
-    }else if(item.id === "flashlight"){
-      const horizontal = rotation % 2 === 1;
-      const bodyW = horizontal ? width * 0.68 : width * 0.34;
-      const bodyH = horizontal ? height * 0.34 : height * 0.68;
-      g.fillStyle(0x1c2725, 0.9);
-      g.fillRoundedRect(
-        horizontal ? -bodyW / 2 + 4 : -bodyW / 2 + 3,
-        horizontal ? -bodyH / 2 + 3 : -bodyH / 2 + 4,
-        bodyW,
-        bodyH,
-        3
-      );
-      g.fillStyle(0x657477, 1);
-      g.fillRoundedRect(-bodyW / 2, -bodyH / 2, bodyW, bodyH, 3);
-      const lensX = horizontal ? bodyW * 0.43 : 0;
-      const lensY = horizontal ? 0 : -bodyH * 0.43;
-      g.fillStyle(0xd1b66b, 1);
-      g.fillCircle(lensX, lensY, Math.max(4, Math.min(width, height) * 0.18));
-      g.fillStyle(0x273232, 1);
-      g.fillCircle(lensX, lensY, Math.max(2, Math.min(width, height) * 0.09));
-      g.fillStyle(0x9c843e, 1);
-      if(horizontal){
-        g.fillRect(-bodyW * 0.12, -height * 0.4, bodyW * 0.24, Math.max(2, height * 0.08));
-      }else{
-        g.fillRect(-bodyW * 0.4, bodyH * 0.12, bodyW * 0.8, Math.max(2, height * 0.05));
-      }
+      g.fillStyle(0xf1dfb0, 1);
+      g.fillRect(bodyX - bodyW * 0.28, bodyY - height * 0.05, bodyW * 0.56, Math.max(2, height * 0.08));
+    }else if(item.id === "gasstove"){
+      const horizontal = width >= height;
+      const tankW = horizontal ? width * 0.58 : width * 0.38;
+      const tankH = horizontal ? height * 0.62 : height * 0.68;
+      const tankX = horizontal ? -width * 0.12 : 0;
+      g.fillStyle(0x14545c, 0.95);
+      g.fillEllipse(tankX + 2, 4, tankW + 5, tankH + 5);
+      g.fillStyle(0x2c8890, 1);
+      g.fillEllipse(tankX, 0, tankW, tankH);
+      g.lineStyle(Math.max(1, Math.min(width, height) * 0.06), 0x8cc2b6, 0.8);
+      g.strokeEllipse(tankX, 0, tankW, tankH);
+      g.fillStyle(0x8c6b32, 1);
+      const burnerX = horizontal ? width * 0.32 : 0;
+      const burnerY = horizontal ? -height * 0.22 : -tankH * 0.52;
+      g.fillCircle(burnerX, burnerY, Math.max(4, Math.min(width, height) * 0.18));
+      g.fillStyle(0xe0b95c, 1);
+      g.fillCircle(burnerX, burnerY, Math.max(2, Math.min(width, height) * 0.09));
+      g.lineStyle(Math.max(1, Math.min(width, height) * 0.05), 0x6d4924, 1);
+      g.lineBetween(burnerX, burnerY, horizontal ? width * 0.42 : width * 0.16, horizontal ? height * 0.2 : -height * 0.16);
     }else if(item.id === "compass"){
       const radius = Math.min(width, height) * 0.42;
       g.fillStyle(0x2a2720, 0.9);
