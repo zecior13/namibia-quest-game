@@ -34,7 +34,7 @@ export class HeroSelectScene extends BaseScene {
 
   create(){
     this.hero = HEROES[this.heroIndex];
-    this.addCoverImage("heroSelectStyle");
+    this.addCoverImage("heroGarageSelect");
     this.drawSceneTreatment();
     this.addHeader();
     this.addHeroGrid();
@@ -44,20 +44,12 @@ export class HeroSelectScene extends BaseScene {
 
   drawSceneTreatment(){
     const shade = this.add.graphics();
-    shade.fillStyle(0x0b1419, 0.66);
+    shade.fillStyle(0x0b1419, 0.18);
     shade.fillRect(0, 0, this.W, this.H);
-
-    const left = this.add.graphics();
-    left.fillStyle(0x091219, 0.78);
-    left.fillRoundedRect(10, 74, this.W * 0.38, this.H - 144, 10);
-    left.lineStyle(2, 0xd4a35e, 0.7);
-    left.strokeRoundedRect(10, 74, this.W * 0.38, this.H - 144, 10);
-
-    const right = this.add.graphics();
-    right.fillStyle(0x24170f, 0.74);
-    right.fillRoundedRect(this.W * 0.41, 74, this.W * 0.57, this.H - 144, 10);
-    right.lineStyle(2, 0xd4a35e, 0.72);
-    right.strokeRoundedRect(this.W * 0.41, 74, this.W * 0.57, this.H - 144, 10);
+    shade.fillGradientStyle(0x05080b, 0x05080b, 0x05080b, 0x05080b, 0.48, 0.1, 0.05, 0.18);
+    shade.fillRect(0, 0, this.W, this.H * 0.16);
+    shade.fillGradientStyle(0x05080b, 0x05080b, 0x05080b, 0x05080b, 0.02, 0.42, 0.66, 0.8);
+    shade.fillRect(0, this.H * 0.75, this.W, this.H * 0.25);
   }
 
   addHeader(){
@@ -79,17 +71,17 @@ export class HeroSelectScene extends BaseScene {
   }
 
   addHeroGrid(){
-    const x = 17;
-    const gridTop = 94;
-    const tileW = (this.W * 0.38 - 28) / 3;
-    const tileH = 92;
-    const gap = 4;
+    const x = 14;
+    const gridTop = 98;
+    const tileW = Math.min(54, (this.W * 0.46 - 32) / 3);
+    const tileH = 72;
+    const gap = 6;
 
     HEROES.forEach((hero, index) => {
-      const row = index < 3 ? 0 : 1;
-      const column = index < 3 ? index : index - 3;
+      const row = index < 3 ? 0 : index < 5 ? 1 : 2;
+      const column = index < 3 ? index : index < 5 ? index - 3 : index - 5;
       const tileX = x + column * (tileW + gap);
-      const tileY = gridTop + row * (tileH + 7);
+      const tileY = gridTop + row * (tileH + 9);
       this.selection[index] = this.addHeroTile(tileX, tileY, tileW, tileH, hero, index);
     });
     this.selectHero(this.heroIndex);
@@ -136,27 +128,29 @@ export class HeroSelectScene extends BaseScene {
     const hero = this.hero;
     const panelX = this.W * 0.43;
     const panelW = this.W * 0.53;
-    const portrait = this.addCroppedHero(hero, "full", panelW * 0.84, this.H * 0.47);
-    portrait.setPosition(panelX + panelW / 2, this.H * 0.335);
+    const portrait = hero.id === "kira"
+      ? this.add.image(0, 0, "heroKiraFull").setDisplaySize(this.W * 0.50, this.H * 0.37)
+      : this.addCroppedHero(hero, "full", panelW * 0.78, this.H * 0.37);
+    portrait.setPosition(this.W * 0.71, this.H * 0.50);
     this.selectedLayer.add(portrait);
 
-    this.selectedLayer.add(this.add.text(panelX + 12, this.H * 0.585, hero.name, {
-      fontFamily: "Georgia", fontSize: "18px", fontStyle: "bold", color: "#f4d79b",
-      wordWrap: { width: panelW - 24 }, shadow: { offsetY: 2, color: "#05080b", blur: 4, fill: true }
+    this.selectedLayer.add(this.add.text(this.W * 0.43, this.H * 0.71, hero.name, {
+      fontFamily: "Georgia", fontSize: "16px", fontStyle: "bold", color: "#f4d79b",
+      wordWrap: { width: this.W * 0.55 }, shadow: { offsetY: 2, color: "#05080b", blur: 4, fill: true }
     }));
-    this.selectedLayer.add(this.add.text(panelX + 12, this.H * 0.64, hero.role.toUpperCase(), {
+    this.selectedLayer.add(this.add.text(this.W * 0.43, this.H * 0.77, hero.role.toUpperCase(), {
       fontFamily: "Georgia", fontSize: "10px", fontStyle: "bold", color: "#e0af58", letterSpacing: 1,
-      wordWrap: { width: panelW - 24 }
+      wordWrap: { width: this.W * 0.55 }
     }));
-    this.selectedLayer.add(this.add.text(panelX + 12, this.H * 0.685, hero.note, {
+    this.selectedLayer.add(this.add.text(this.W * 0.43, this.H * 0.81, hero.note, {
       fontFamily: "Georgia", fontSize: "12px", color: "#f3e2bc", lineSpacing: 2,
-      wordWrap: { width: panelW - 24 }
+      wordWrap: { width: this.W * 0.55 }
     }));
 
     const stats = Object.keys(STAT_LABELS);
     stats.forEach((stat, index) => {
-      const statX = panelX + 12 + (index % 2) * (panelW * 0.47);
-      const statY = this.H * 0.77 + Math.floor(index / 2) * 28;
+      const statX = this.W * 0.43 + (index % 2) * (this.W * 0.25);
+      const statY = this.H * 0.88 + Math.floor(index / 2) * 18;
       this.selectedLayer.add(this.add.text(statX, statY, `${STAT_LABELS[stat].toUpperCase()} ${hero.stats[stat]}`, {
         fontFamily: "Georgia", fontSize: "11px", fontStyle: "bold", color: "#f0d397"
       }));
