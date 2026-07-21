@@ -3,11 +3,13 @@ import { BaseScene } from "./BaseScene.js";
 const CARGO = { width:6, depth:7 };
 const ITEMS = [
   { id:"tent", name:"Namiot", dims:[3,2], crop:[0,0,627,418], tint:0xb28b5b },
-  { id:"water", name:"Kanister", dims:[2,2], crop:[627,0,627,418], tint:0x3e7593 },
-  { id:"medkit", name:"Apteczka", dims:[2,1], crop:[0,418,627,418], tint:0xb65b38 },
-  { id:"duffel", name:"Torba", dims:[3,2], crop:[627,418,627,418], tint:0x8b7651 },
-  { id:"tools", name:"Narzędzia", dims:[4,1], crop:[0,836,627,418], tint:0x375866 },
-  { id:"cooler", name:"Lodówka", dims:[2,2], crop:[627,836,627,418], tint:0x4a8a89 }
+  { id:"water", name:"Kanister", dims:[2,3], crop:[627,0,627,418], tint:0x3e7593 },
+  { id:"medkit", name:"Apteczka", dims:[2,2], crop:[0,418,627,418], tint:0xb65b38 },
+  { id:"duffel", name:"Torba", dims:[3,3], crop:[627,418,627,418], tint:0x8b7651 },
+  { id:"tools", name:"Narzędzia", dims:[4,2], crop:[0,836,627,418], tint:0x375866 },
+  { id:"cooler", name:"Lodówka", dims:[2,3], crop:[627,836,627,418], tint:0x4a8a89 },
+  { id:"compass", name:"Kompas", dims:[1,1], sourceKey:"packCompass", crop:[0,0,627,1254], tint:0x9b7732 },
+  { id:"radio", name:"Radio", dims:[1,2], sourceKey:"packRadio", crop:[0,0,627,1254], tint:0x4f5e59 }
 ];
 
 export class PackScene extends BaseScene {
@@ -31,13 +33,14 @@ export class PackScene extends BaseScene {
 
   buildItemTextures(){
     if(this.itemTexturesReady){ return; }
-    const source = this.textures.get("packItems").getSourceImage();
+    const sources = { main:this.textures.get("packItems").getSourceImage() };
     ITEMS.forEach((item)=>{
       const [sx, sy, sw, sh] = item.crop;
       const canvas = document.createElement("canvas");
       canvas.width = sw;
       canvas.height = sh;
       const context = canvas.getContext("2d");
+      const source = item.sourceKey ? this.textures.get(item.sourceKey).getSourceImage() : sources.main;
       context.drawImage(source, sx, sy, sw, sh, 0, 0, sw, sh);
       const pixels = context.getImageData(0, 0, sw, sh);
       for(let i = 0; i < pixels.data.length; i += 4){
@@ -74,6 +77,9 @@ export class PackScene extends BaseScene {
     });
     this.add.text(this.W - 14, 16, `${this.placed.length} / ${ITEMS.length}`, {
       fontFamily:"monospace", fontSize:"14px", fontStyle:"bold", color:"#f4d49c"
+    }).setOrigin(1, 0);
+    this.add.text(this.W - 14, 39, "POWIERZCHNIA 42 / 42 PÓL", {
+      fontFamily:"monospace", fontSize:"8px", fontStyle:"bold", color:"#f4d49c"
     }).setOrigin(1, 0);
   }
 
@@ -152,13 +158,16 @@ export class PackScene extends BaseScene {
     });
     ITEMS.forEach((item, index)=>{
       if(this.placed.some((placement)=>placement.id === item.id) || this.active?.id === item.id){ return; }
-      const y = 326 + index * 62;
+      const column = index % 2;
+      const row = Math.floor(index / 2);
+      const x = 6 + column * 82;
+      const y = 326 + row * 56;
       const frame = this.add.graphics();
       frame.fillStyle(0x182a2b, 0.9);
-      frame.fillRoundedRect(6, y, 76, 50, 7);
+      frame.fillRoundedRect(x, y, 76, 46, 7);
       frame.lineStyle(1, item.tint, 0.9);
-      frame.strokeRoundedRect(6, y, 76, 50, 7);
-      const image = this.add.image(44, y + 24, `pack-${item.id}`).setDisplaySize(68, 42);
+      frame.strokeRoundedRect(x, y, 76, 46, 7);
+      const image = this.createItemVisual(item, 68, 40, x + 38, y + 23, 0);
       image.setInteractive({ useHandCursor:true }).on("pointerdown", ()=>this.selectItem(item.id));
     });
   }
@@ -227,10 +236,14 @@ export class PackScene extends BaseScene {
     drawQuad(points, item.tint, active ? 0.14 : 0.08, active ? 0.9 : 0.35);
     view.add(footprintGraphic);
 
-    const image = this.add.image(0, -height * 0.14 - lift * 0.45, `pack-${item.id}`)
-      .setDisplaySize(width * 0.9, Math.max(24, height * 0.82))
-      .setAlpha(active ? 1 : 0.94)
-      .setAngle((placement.rot % 2) * 90);
+    const image = this.createItemVisual(
+      item,
+      width * 0.9,
+      Math.max(24, height * 0.82),
+      0,
+      -height * 0.14 - lift * 0.45,
+      placement.rot
+    ).setAlpha(active ? 1 : 0.94);
     view.add(image);
 
     if(active){
@@ -308,7 +321,13 @@ export class PackScene extends BaseScene {
       this.drawScene();
       return;
     }
-    this.placed.push({ id:item.id, x, depth, rot:this.active.rot });
+    const candidate = { id:item.id, x, depth, rot:this.active.rot };
+    if(!this.canComplete([...this.placed, candidate])){
+      this.message = "Ta pozycja blokuje dalsze pakowanie. Przesuń albo obróć przedmiot.";
+      this.drawScene();
+      return;
+    }
+    this.placed.push(candidate);
     this.active = null;
     this.message = "Przedmiot wsunięty. Układaj dalej, zostawiając jak najmniej szczelin.";
     this.drawScene();
@@ -338,6 +357,49 @@ export class PackScene extends BaseScene {
     this.drawScene();
   }
 
+  createItemVisual(item, width, height, x, y, rotation){
+    if(item.id !== "compass" && item.id !== "radio"){
+      return this.add.image(x, y, `pack-${item.id}`)
+        .setDisplaySize(width, height)
+        // The source art is a standing object. Turning the footprint must not
+        // make a refrigerator or radio appear to lie on its side.
+        .setFlipX(rotation === 1);
+    }
+
+    const group = this.add.container(x, y);
+    const g = this.add.graphics();
+    if(item.id === "compass"){
+      const radius = Math.min(width, height) * 0.42;
+      g.fillStyle(0x8f6728, 1);
+      g.fillCircle(0, 0, radius);
+      g.lineStyle(Math.max(1, width * 0.035), 0xe1bc62, 0.95);
+      g.strokeCircle(0, 0, radius);
+      g.fillStyle(0xe3d19b, 1);
+      g.fillCircle(0, 0, radius * 0.72);
+      g.fillStyle(0x423526, 1);
+      g.fillTriangle(0, -radius * 0.58, -radius * 0.12, radius * 0.18, 0, 0);
+      g.fillStyle(0xb84631, 1);
+      g.fillTriangle(0, -radius * 0.58, radius * 0.12, radius * 0.18, 0, 0);
+      g.fillCircle(0, 0, Math.max(2, radius * 0.12));
+    }else{
+      const bodyW = width * 0.52;
+      const bodyH = height * 0.76;
+      g.fillStyle(0x3a4743, 1);
+      g.fillRoundedRect(-bodyW / 2, -bodyH / 2 + height * 0.08, bodyW, bodyH, Math.max(3, width * 0.08));
+      g.lineStyle(Math.max(1, width * 0.035), 0xb7a77a, 0.78);
+      g.strokeRoundedRect(-bodyW / 2, -bodyH / 2 + height * 0.08, bodyW, bodyH, Math.max(3, width * 0.08));
+      g.fillStyle(0x1e2826, 1);
+      g.fillRoundedRect(-bodyW * 0.3, -bodyH * 0.16, bodyW * 0.6, bodyH * 0.08, 2);
+      g.fillRoundedRect(-bodyW * 0.3, 0, bodyW * 0.6, bodyH * 0.08, 2);
+      g.fillStyle(0x3a4743, 1);
+      g.fillRoundedRect(-width * 0.035, -height * 0.49, width * 0.07, height * 0.22, 2);
+      g.fillCircle(width * 0.18, -bodyH * 0.26, Math.max(2, width * 0.06));
+    }
+    group.add(g);
+    group.setSize(width, height);
+    return group;
+  }
+
   findRestingDepth(x, dims){
     for(let depth = CARGO.depth - dims[1]; depth >= 0; depth--){
       if(this.canOccupy(x, depth, dims)) return depth;
@@ -353,6 +415,47 @@ export class PackScene extends BaseScene {
     });
   }
 
+  canComplete(placed){
+    const remaining = ITEMS
+      .filter((item)=>!placed.some((placement)=>placement.id === item.id))
+      .sort((a, b)=>b.dims[0] * b.dims[1] - a.dims[0] * a.dims[1]);
+    const search = (index, board)=>{
+      if(index === remaining.length) return true;
+      const item = remaining[index];
+      for(let rotation = 0; rotation < 2; rotation++){
+        const dims = this.getDims(item, rotation);
+        for(let depth = CARGO.depth - dims[1]; depth >= 0; depth--){
+          for(let x = 0; x <= CARGO.width - dims[0]; x++){
+            if(!this.boardCanOccupy(board, x, depth, dims)) continue;
+            const next = board.map((row)=>row.slice());
+            for(let yy = depth; yy < depth + dims[1]; yy++){
+              for(let xx = x; xx < x + dims[0]; xx++) next[yy][xx] = true;
+            }
+            if(search(index + 1, next)) return true;
+          }
+        }
+      }
+      return false;
+    };
+    const board = Array.from({ length:CARGO.depth }, ()=>Array(CARGO.width).fill(false));
+    placed.forEach((placement)=>{
+      const dims = this.getDims(this.getItem(placement.id), placement.rot);
+      for(let yy = placement.depth; yy < placement.depth + dims[1]; yy++){
+        for(let xx = placement.x; xx < placement.x + dims[0]; xx++) board[yy][xx] = true;
+      }
+    });
+    return search(0, board);
+  }
+
+  boardCanOccupy(board, x, depth, dims){
+    for(let yy = depth; yy < depth + dims[1]; yy++){
+      for(let xx = x; xx < x + dims[0]; xx++){
+        if(board[yy][xx]) return false;
+      }
+    }
+    return true;
+  }
+
   getFootprint(x, depth, dims){
     return [
       this.project(x, depth),
@@ -364,9 +467,9 @@ export class PackScene extends BaseScene {
 
   project(x, depth){
     const t = depth / CARGO.depth;
-    const center = this.W * 0.54;
-    const nearHalf = this.W * 0.43;
-    const farHalf = this.W * 0.25;
+    const center = this.W * 0.52;
+    const nearHalf = this.W * 0.49;
+    const farHalf = this.W * 0.30;
     const half = nearHalf + (farHalf - nearHalf) * t;
     return {
       x:center + ((x / CARGO.width) - 0.5) * half * 2,
