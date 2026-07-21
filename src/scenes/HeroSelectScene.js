@@ -3,25 +3,25 @@ import { HEROES, STAT_LABELS } from "../data/heroes.js";
 
 const CROPS = {
   kira: {
-    full: [0, 0, 650, 1024], bust: [555, 35, 720, 720]
+    full: [0, 0, 650, 1024], bust: [590, 155, 570, 560]
   },
   nia: {
-    full: [120, 0, 620, 1024], bust: [700, 35, 760, 660]
+    full: [120, 0, 620, 1024], bust: [790, 130, 610, 520]
   },
   bruno: {
-    full: [0, 0, 900, 1024], bust: [770, 20, 700, 590]
+    full: [0, 0, 900, 1024], bust: [825, 105, 590, 485]
   },
   celeste: {
-    full: [0, 0, 780, 1024], bust: [775, 15, 720, 620]
+    full: [0, 0, 780, 1024], bust: [825, 100, 590, 520]
   },
   tebo: {
-    full: [0, 0, 820, 1024], bust: [790, 25, 720, 630]
+    full: [0, 0, 820, 1024], bust: [850, 85, 570, 535]
   },
   mira: {
-    full: [0, 0, 680, 1536], bust: [495, 65, 520, 720]
+    full: [0, 0, 680, 1536], bust: [525, 105, 455, 620]
   },
   alex: {
-    full: [0, 0, 670, 1536], bust: [485, 55, 530, 720]
+    full: [0, 0, 670, 1536], bust: [515, 95, 460, 630]
   }
 };
 
@@ -95,7 +95,7 @@ export class HeroSelectScene extends BaseScene {
     frame.lineStyle(2, 0xb28a50, 0.78);
     frame.strokeRoundedRect(0, 0, w, h, 7);
 
-    const portrait = this.addCroppedHero(hero, "bust", w * 0.92, h * 0.82);
+    const portrait = this.addCroppedHero(hero, "bust", w * 1.12, h * 1.08);
     portrait.setPosition(w / 2, h * 0.45);
     group.add([frame, portrait]);
     group.setSize(w, h);
@@ -134,23 +134,23 @@ export class HeroSelectScene extends BaseScene {
     portrait.setPosition(this.W * 0.71, this.H * 0.50);
     this.selectedLayer.add(portrait);
 
-    this.selectedLayer.add(this.add.text(this.W * 0.43, this.H * 0.71, hero.name, {
-      fontFamily: "Georgia", fontSize: "16px", fontStyle: "bold", color: "#f4d79b",
-      wordWrap: { width: this.W * 0.55 }, shadow: { offsetY: 2, color: "#05080b", blur: 4, fill: true }
+    this.selectedLayer.add(this.add.text(this.W * 0.045, this.H * 0.405, hero.name, {
+      fontFamily: "Georgia", fontSize: "14px", fontStyle: "bold", color: "#f4d79b",
+      wordWrap: { width: this.W * 0.34 }, shadow: { offsetY: 2, color: "#05080b", blur: 4, fill: true }
     }));
-    this.selectedLayer.add(this.add.text(this.W * 0.43, this.H * 0.77, hero.role.toUpperCase(), {
+    this.selectedLayer.add(this.add.text(this.W * 0.045, this.H * 0.49, hero.role.toUpperCase(), {
       fontFamily: "Georgia", fontSize: "10px", fontStyle: "bold", color: "#e0af58", letterSpacing: 1,
-      wordWrap: { width: this.W * 0.55 }
+      wordWrap: { width: this.W * 0.34 }
     }));
-    this.selectedLayer.add(this.add.text(this.W * 0.43, this.H * 0.81, hero.note, {
-      fontFamily: "Georgia", fontSize: "12px", color: "#f3e2bc", lineSpacing: 2,
-      wordWrap: { width: this.W * 0.55 }
+    this.selectedLayer.add(this.add.text(this.W * 0.045, this.H * 0.56, hero.note, {
+      fontFamily: "Georgia", fontSize: "11px", color: "#f3e2bc", lineSpacing: 2,
+      wordWrap: { width: this.W * 0.34 }, shadow: { offsetY: 2, color: "#05080b", blur: 4, fill: true }
     }));
 
     const stats = Object.keys(STAT_LABELS);
     stats.forEach((stat, index) => {
-      const statX = this.W * 0.43 + (index % 2) * (this.W * 0.25);
-      const statY = this.H * 0.88 + Math.floor(index / 2) * 18;
+      const statX = this.W * 0.045 + (index % 2) * (this.W * 0.18);
+      const statY = this.H * 0.70 + Math.floor(index / 2) * 20;
       this.selectedLayer.add(this.add.text(statX, statY, `${STAT_LABELS[stat].toUpperCase()} ${hero.stats[stat]}`, {
         fontFamily: "Georgia", fontSize: "11px", fontStyle: "bold", color: "#f0d397"
       }));
@@ -167,10 +167,10 @@ export class HeroSelectScene extends BaseScene {
   }
 
   addFooterControls(){
-    this.add.text(18, this.H - 58, "DOTKNIJ POSTACI, ABY JĄ WYBRAĆ", {
-      fontFamily: "Georgia", fontSize: "10px", fontStyle: "bold", color: "#d2ad69", letterSpacing: 1
+    this.add.text(14, this.H - 31, "DOTKNIJ PORTRETU, ABY WYBRAĆ", {
+      fontFamily: "Georgia", fontSize: "8px", fontStyle: "bold", color: "#d2ad69", letterSpacing: 0.5
     });
-    this.addRetroButton(this.W * 0.57, this.H - 65, this.W * 0.37, 38, "WYBIERAM", () => {
+    this.addRetroButton(this.W * 0.60, this.H - 65, this.W * 0.34, 38, "WYBIERAM", () => {
       const name = window.prompt("Jak ma nazywać się bohater?", this.hero.name.split(" ")[0]);
       this.saveGamePatch({
         heroId: this.hero.id,
