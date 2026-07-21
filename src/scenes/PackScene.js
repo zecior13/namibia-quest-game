@@ -1,13 +1,13 @@
 import { BaseScene } from "./BaseScene.js";
 
-const VOLUME = { width:6, depth:7, height:3 };
+const CARGO = { width:6, depth:7 };
 const ITEMS = [
-  { id:"tent", name:"Namiot", dims:[3,2,1], crop:[0,0,627,418], tint:0xb28b5b },
-  { id:"water", name:"Kanister", dims:[2,2,2], crop:[627,0,627,418], tint:0x3e7593 },
-  { id:"medkit", name:"Apteczka", dims:[2,1,1], crop:[0,418,627,418], tint:0xb65b38 },
-  { id:"duffel", name:"Torba", dims:[3,2,2], crop:[627,418,627,418], tint:0x8b7651 },
-  { id:"tools", name:"Narzędzia", dims:[4,1,1], crop:[0,836,627,418], tint:0x375866 },
-  { id:"cooler", name:"Lodówka", dims:[2,2,2], crop:[627,836,627,418], tint:0x4a8a89 }
+  { id:"tent", name:"Namiot", dims:[3,2], crop:[0,0,627,418], tint:0xb28b5b },
+  { id:"water", name:"Kanister", dims:[2,2], crop:[627,0,627,418], tint:0x3e7593 },
+  { id:"medkit", name:"Apteczka", dims:[2,1], crop:[0,418,627,418], tint:0xb65b38 },
+  { id:"duffel", name:"Torba", dims:[3,2], crop:[627,418,627,418], tint:0x8b7651 },
+  { id:"tools", name:"Narzędzia", dims:[4,1], crop:[0,836,627,418], tint:0x375866 },
+  { id:"cooler", name:"Lodówka", dims:[2,2], crop:[627,836,627,418], tint:0x4a8a89 }
 ];
 
 export class PackScene extends BaseScene {
@@ -18,7 +18,7 @@ export class PackScene extends BaseScene {
     this.activeView = null;
     this.dragState = null;
     this.itemTexturesReady = false;
-    this.message = "Wybierz przedmiot. Przeciągnij go lewo/prawo, obróć i wciśnij PCHNIJ.";
+    this.message = "Wybierz sprzęt. Przesuń go lewo/prawo, obróć i wciśnij PCHNIJ.";
   }
 
   create(){
@@ -55,10 +55,12 @@ export class PackScene extends BaseScene {
   drawScene(){
     this.children.removeAll();
     this.activeView = null;
+
     const backdrop = this.add.image(this.W / 2, this.H / 2, "cargoScene");
     backdrop.setScale(Math.max(this.W / backdrop.width, this.H / backdrop.height));
+
     this.drawHeader();
-    this.drawTunnel();
+    this.drawCargoFloor();
     this.drawObjects();
     this.drawDragSurface();
     this.drawItemRail();
@@ -75,38 +77,45 @@ export class PackScene extends BaseScene {
     }).setOrigin(1, 0);
   }
 
-  drawTunnel(){
+  drawCargoFloor(){
     const g = this.add.graphics();
-    const corners = [this.project(0,0,0), this.project(VOLUME.width,0,0), this.project(VOLUME.width,VOLUME.depth,0), this.project(0,VOLUME.depth,0)];
-    g.fillStyle(0x131e1d, 0.3);
+    const nearLeft = this.project(0, 0);
+    const nearRight = this.project(CARGO.width, 0);
+    const farLeft = this.project(0, CARGO.depth);
+    const farRight = this.project(CARGO.width, CARGO.depth);
+
+    g.fillStyle(0x172322, 0.18);
     g.beginPath();
-    corners.forEach((point, index)=>index ? g.lineTo(point.x, point.y) : g.moveTo(point.x, point.y));
+    g.moveTo(nearLeft.x, nearLeft.y);
+    g.lineTo(nearRight.x, nearRight.y);
+    g.lineTo(farRight.x, farRight.y);
+    g.lineTo(farLeft.x, farLeft.y);
     g.closePath();
     g.fillPath();
-    g.lineStyle(2, 0xe8c987, 0.5);
+
+    g.lineStyle(2, 0xf0d49a, 0.52);
     g.beginPath();
-    corners.forEach((point, index)=>index ? g.lineTo(point.x, point.y) : g.moveTo(point.x, point.y));
+    g.moveTo(nearLeft.x, nearLeft.y);
+    g.lineTo(nearRight.x, nearRight.y);
+    g.lineTo(farRight.x, farRight.y);
+    g.lineTo(farLeft.x, farLeft.y);
     g.closePath();
     g.strokePath();
-    for(let depth = 0; depth <= VOLUME.depth; depth++){
-      const left = this.project(0, depth, 0);
-      const right = this.project(VOLUME.width, depth, 0);
-      g.lineStyle(1, 0xe8c987, depth === 0 || depth === VOLUME.depth ? 0.46 : 0.19);
+
+    for(let depth = 0; depth <= CARGO.depth; depth++){
+      const left = this.project(0, depth);
+      const right = this.project(CARGO.width, depth);
+      g.lineStyle(1, 0xf0d49a, depth === 0 || depth === CARGO.depth ? 0.5 : 0.22);
       g.lineBetween(left.x, left.y, right.x, right.y);
     }
-    for(let col = 0; col <= VOLUME.width; col++){
-      const near = this.project(col, 0, 0);
-      const far = this.project(col, VOLUME.depth, 0);
-      g.lineStyle(1, 0xe8c987, 0.25);
+    for(let column = 0; column <= CARGO.width; column++){
+      const near = this.project(column, 0);
+      const far = this.project(column, CARGO.depth);
+      g.lineStyle(1, 0xf0d49a, 0.26);
       g.lineBetween(near.x, near.y, far.x, far.y);
     }
-    for(let level = 1; level <= VOLUME.height; level++){
-      const left = this.project(0, 0, level);
-      const right = this.project(VOLUME.width, 0, level);
-      g.lineStyle(1, 0xe8c987, 0.18);
-      g.lineBetween(left.x, left.y, right.x, right.y);
-    }
-    this.add.text(this.W * 0.58, 282, "TUNEL ŁADUNKOWY  6 × 7 × 3", {
+
+    this.add.text(this.W * 0.59, 372, "PRZESTRZEŃ ŁADUNKOWA  6 × 7", {
       fontFamily:"monospace", fontSize:"9px", fontStyle:"bold", color:"#f4d49c",
       stroke:"#172423", strokeThickness:4
     }).setOrigin(0.5);
@@ -115,19 +124,20 @@ export class PackScene extends BaseScene {
   drawObjects(){
     const objects = [...this.placed];
     if(this.active){ objects.push(this.active); }
-    objects.sort((a, b)=>b.y - a.y);
-    objects.forEach((placement)=>this.addObject(this.getItem(placement.id), placement, placement === this.active ? 0.82 : 1));
+    objects.sort((a, b)=>b.depth - a.depth);
+    objects.forEach((placement)=>this.addObject(this.getItem(placement.id), placement, placement === this.active));
   }
 
   drawDragSurface(){
     if(!this.active){ return; }
-    const near = this.project(0, 0, 0);
-    const far = this.project(VOLUME.width, VOLUME.depth, 0);
+    const left = this.project(0, 0);
+    const right = this.project(CARGO.width, 0);
+    const far = this.project(0, CARGO.depth);
     const surface = this.add.rectangle(
-      (near.x + far.x) / 2,
-      (near.y + far.y) / 2,
-      Math.abs(this.project(VOLUME.width, 0, 0).x - near.x),
-      Math.abs(near.y - far.y),
+      (left.x + right.x) / 2,
+      (left.y + far.y) / 2,
+      Math.abs(right.x - left.x),
+      Math.abs(left.y - far.y),
       0xffffff,
       0
     );
@@ -136,7 +146,10 @@ export class PackScene extends BaseScene {
   }
 
   drawItemRail(){
-    this.add.text(10, 300, "SPRZĘT", { fontFamily:"monospace", fontSize:"10px", fontStyle:"bold", color:"#f4d49c", stroke:"#172423", strokeThickness:3 });
+    this.add.text(10, 300, "SPRZĘT", {
+      fontFamily:"monospace", fontSize:"10px", fontStyle:"bold", color:"#f4d49c",
+      stroke:"#172423", strokeThickness:3
+    });
     ITEMS.forEach((item, index)=>{
       if(this.placed.some((placement)=>placement.id === item.id) || this.active?.id === item.id){ return; }
       const y = 326 + index * 62;
@@ -160,74 +173,60 @@ export class PackScene extends BaseScene {
     this.command(186, 808, "↺ OBRÓĆ", ()=>this.rotateActive());
     this.command(286, 808, "PCHNIJ", ()=>this.pushActive());
     if(this.placed.length === ITEMS.length){
-      this.add.text(this.W - 12, 774, "RUSZAJ →", { fontFamily:"monospace", fontSize:"13px", fontStyle:"bold", color:"#f1c873" })
-        .setOrigin(1, 0).setInteractive({ useHandCursor:true }).on("pointerdown", ()=>{
-          this.saveGamePatch({ packComplete:true, windhoekDone:true, progress:"solitaire" });
-          this.scene.start("MapScene");
-        });
+      this.add.text(this.W - 12, 774, "RUSZAJ →", {
+        fontFamily:"monospace", fontSize:"13px", fontStyle:"bold", color:"#f1c873"
+      }).setOrigin(1, 0).setInteractive({ useHandCursor:true }).on("pointerdown", ()=>{
+        this.saveGamePatch({ packComplete:true, windhoekDone:true, progress:"solitaire" });
+        this.scene.start("MapScene");
+      });
     }
   }
 
   command(x, y, label, callback){
-    this.add.text(x, y, label, { fontFamily:"monospace", fontSize:"11px", fontStyle:"bold", color:"#f4d49c", backgroundColor:"#182a2b", padding:{ left:7, right:7, top:6, bottom:6 } })
-      .setInteractive({ useHandCursor:true }).on("pointerdown", callback);
+    this.add.text(x, y, label, {
+      fontFamily:"monospace", fontSize:"11px", fontStyle:"bold", color:"#f4d49c",
+      backgroundColor:"#182a2b", padding:{ left:7, right:7, top:6, bottom:6 }
+    }).setInteractive({ useHandCursor:true }).on("pointerdown", callback);
   }
 
   selectItem(id){
     const item = this.getItem(id);
-    this.active = { id, x:Math.floor((VOLUME.width - item.dims[0]) / 2), y:0, z:0, rot:0 };
+    this.active = { id, x:Math.floor((CARGO.width - item.dims[0]) / 2), depth:0, rot:0 };
     this.message = `${item.name.toUpperCase()} PRZY WEJŚCIU. Przeciągnij lewo/prawo, obróć, potem PCHNIJ.`;
     this.drawScene();
   }
 
-  addObject(item, placement, alpha){
+  addObject(item, placement, active){
     const dims = this.getDims(item, placement.rot);
-    const anchor = this.project(placement.x + dims[0] / 2, placement.y + dims[1] / 2, placement.z);
-    const point = (x, y, z)=>this.project(x, y, z);
-    const p000 = point(placement.x, placement.y, placement.z);
-    const p100 = point(placement.x + dims[0], placement.y, placement.z);
-    const p010 = point(placement.x, placement.y + dims[1], placement.z);
-    const p110 = point(placement.x + dims[0], placement.y + dims[1], placement.z);
-    const p001 = point(placement.x, placement.y, placement.z + dims[2]);
-    const p101 = point(placement.x + dims[0], placement.y, placement.z + dims[2]);
-    const p011 = point(placement.x, placement.y + dims[1], placement.z + dims[2]);
-    const p111 = point(placement.x + dims[0], placement.y + dims[1], placement.z + dims[2]);
-    const width = Math.max(34, Math.abs(p100.x - p000.x));
-    const height = Math.max(30, Math.abs(p001.y - p000.y) + Math.abs(p010.y - p000.y));
-    const view = this.add.container(anchor.x, anchor.y);
-    const prism = this.add.graphics();
-    const local = (point)=>({ x:point.x - anchor.x, y:point.y - anchor.y });
-    const q000 = local(p000), q100 = local(p100), q010 = local(p010), q110 = local(p110);
-    const q001 = local(p001), q101 = local(p101), q011 = local(p011), q111 = local(p111);
-    const face = (points, color, fillAlpha = 0.42)=>{
-      prism.fillStyle(color, fillAlpha * alpha);
-      prism.beginPath();
-      points.forEach((p, index)=>index ? prism.lineTo(p.x, p.y) : prism.moveTo(p.x, p.y));
-      prism.closePath();
-      prism.fillPath();
-      prism.lineStyle(1.2, 0xe8c987, alpha * 0.72);
-      prism.strokePath();
-    };
-    // The three visible planes make the cargo read as a volume, not a flat card.
-    face([q000, q100, q101, q001], item.tint, 0.56);
-    face([q100, q110, q111, q101], item.tint, 0.34);
-    face([q001, q101, q111, q011], 0xd6b47a, 0.46);
-    face([q000, q010, q011, q001], item.tint, 0.24);
-    prism.fillStyle(0x111c1c, 0.4);
-    prism.fillEllipse(0, Math.max(8, height * 0.48), width * 1.05, Math.max(5, height * 0.12));
-    view.add(prism);
-    const image = this.add.image(0, -height * 0.2, `pack-${item.id}`)
-      .setDisplaySize(width * 1.05, Math.max(24, height * 0.78))
-      .setAlpha(alpha)
+    const footprint = this.getFootprint(placement.x, placement.depth, dims);
+    const center = this.project(placement.x + dims[0] / 2, placement.depth + dims[1] / 2);
+    const width = Math.max(28, Math.abs(footprint[1].x - footprint[0].x));
+    const height = Math.max(24, Math.abs(footprint[0].y - footprint[3].y));
+    const view = this.add.container(center.x, center.y);
+    const footprintGraphic = this.add.graphics();
+    const local = (point)=>({ x:point.x - center.x, y:point.y - center.y });
+    const points = footprint.map(local);
+
+    footprintGraphic.fillStyle(item.tint, active ? 0.28 : 0.13);
+    footprintGraphic.beginPath();
+    points.forEach((point, index)=>index ? footprintGraphic.lineTo(point.x, point.y) : footprintGraphic.moveTo(point.x, point.y));
+    footprintGraphic.closePath();
+    footprintGraphic.fillPath();
+    footprintGraphic.lineStyle(1.5, active ? 0xf3d28d : item.tint, active ? 0.86 : 0.42);
+    footprintGraphic.strokePath();
+    view.add(footprintGraphic);
+
+    const image = this.add.image(0, -height * 0.08, `pack-${item.id}`)
+      .setDisplaySize(width * 0.9, Math.max(24, height * 0.82))
+      .setAlpha(active ? 1 : 0.94)
       .setAngle((placement.rot % 2) * 90);
     view.add(image);
-    if(placement === this.active){
+
+    if(active){
       this.activeView = view;
-      // Use a generous hit area around the whole prism. Chroma-key transparency
-      // on the sprite must never make the object impossible to grab.
-      view.setSize(Math.max(54, width * 1.7), Math.max(60, height * 1.6));
+      view.setSize(Math.max(54, width * 1.5), Math.max(50, height * 1.5));
       view.setInteractive(
-        new Phaser.Geom.Rectangle(-Math.max(27, width * 0.85), -Math.max(30, height * 0.95), Math.max(54, width * 1.7), Math.max(60, height * 1.6)),
+        new Phaser.Geom.Rectangle(-Math.max(27, width * 0.75), -Math.max(25, height * 0.75), Math.max(54, width * 1.5), Math.max(50, height * 1.5)),
         Phaser.Geom.Rectangle.Contains
       );
       view.on("pointerdown", (pointer)=>this.beginDrag(pointer));
@@ -248,7 +247,8 @@ export class PackScene extends BaseScene {
     if(Math.abs(delta) < 1){ return; }
     const item = this.getItem(this.active.id);
     const dims = this.getDims(item, this.active.rot);
-    this.active.x = Phaser.Math.Clamp(this.active.x + Math.round(delta / 28), 0, VOLUME.width - dims[0]);
+    const cellWidth = Math.max(20, Math.abs(this.project(1, this.active.depth).x - this.project(0, this.active.depth).x));
+    this.active.x = Phaser.Math.Clamp(this.active.x + Math.round(delta / cellWidth), 0, CARGO.width - dims[0]);
     this.refreshActiveView();
   }
 
@@ -264,25 +264,25 @@ export class PackScene extends BaseScene {
     if(!this.activeView || !this.active){ return; }
     const item = this.getItem(this.active.id);
     const dims = this.getDims(item, this.active.rot);
-    const anchor = this.project(this.active.x + dims[0] / 2, this.active.y + dims[1] / 2, this.active.z);
-    this.activeView.setPosition(anchor.x, anchor.y);
+    const center = this.project(this.active.x + dims[0] / 2, this.active.depth + dims[1] / 2);
+    this.activeView.setPosition(center.x, center.y);
   }
 
   nudgeActive(delta){
     if(!this.active){ this.message = "Najpierw wybierz przedmiot."; this.drawScene(); return; }
     const item = this.getItem(this.active.id);
     const dims = this.getDims(item, this.active.rot);
-    this.active.x = Phaser.Math.Clamp(this.active.x + delta, 0, VOLUME.width - dims[0]);
+    this.active.x = Phaser.Math.Clamp(this.active.x + delta, 0, CARGO.width - dims[0]);
     this.refreshActiveView();
   }
 
   rotateActive(){
     if(!this.active){ this.message = "Najpierw wybierz przedmiot."; this.drawScene(); return; }
-    this.active.rot = (this.active.rot + 1) % 6;
+    this.active.rot = (this.active.rot + 1) % 2;
     const item = this.getItem(this.active.id);
     const dims = this.getDims(item, this.active.rot);
-    this.active.x = Phaser.Math.Clamp(this.active.x, 0, VOLUME.width - dims[0]);
-    this.message = "OBRÓT ZMIENIONY. Sprawdź szerokość i wciśnij PCHNIJ.";
+    this.active.x = Phaser.Math.Clamp(this.active.x, 0, CARGO.width - dims[0]);
+    this.message = "OBRÓT ZMIENIONY. Dopasuj szerokość i wciśnij PCHNIJ.";
     this.drawScene();
   }
 
@@ -290,67 +290,57 @@ export class PackScene extends BaseScene {
     if(!this.active){ this.message = "Nie ma przedmiotu przy wejściu."; this.drawScene(); return; }
     const item = this.getItem(this.active.id);
     const dims = this.getDims(item, this.active.rot);
-    const x = Phaser.Math.Clamp(this.active.x, 0, VOLUME.width - dims[0]);
-    const placement = this.findRestingPlace(item, x, dims);
-    if(!placement){ this.message = "Ta pozycja jest zablokowana. Przesuń lub obróć przedmiot."; this.drawScene(); return; }
-    this.placed.push({ id:item.id, x:placement.x, y:placement.y, z:placement.z, rot:this.active.rot });
+    const x = Phaser.Math.Clamp(this.active.x, 0, CARGO.width - dims[0]);
+    const depth = this.findRestingDepth(x, dims);
+    if(depth === null){
+      this.message = "Ta pozycja jest zajęta. Przesuń albo obróć przedmiot.";
+      this.drawScene();
+      return;
+    }
+    this.placed.push({ id:item.id, x, depth, rot:this.active.rot });
     this.active = null;
-    this.message = "Przedmiot wsunięty. Wybierz następny i zostaw jak najmniej pustych szczelin.";
+    this.message = "Przedmiot wsunięty. Układaj dalej, zostawiając jak najmniej szczelin.";
     this.drawScene();
   }
 
-  findRestingPlace(item, x, dims){
-    for(let y = VOLUME.depth - dims[1]; y >= 0; y--){
-      for(let z = 0; z <= VOLUME.height - dims[2]; z++){
-        const candidate = { id:item.id, x, y, z, rot:this.active.rot };
-        if(this.canOccupy(candidate, dims) && this.hasSupport(candidate, dims)) return { x, y, z };
-      }
+  findRestingDepth(x, dims){
+    for(let depth = CARGO.depth - dims[1]; depth >= 0; depth--){
+      if(this.canOccupy(x, depth, dims)) return depth;
     }
     return null;
   }
 
-  hasSupport(candidate, dims){
-    if(candidate.z === 0) return true;
-    for(let x = candidate.x; x < candidate.x + dims[0]; x++){
-      for(let y = candidate.y; y < candidate.y + dims[1]; y++){
-        if(!this.isOccupied(x, y, candidate.z - 1)) return false;
-      }
-    }
-    return true;
-  }
-
-  canOccupy(candidate, dims){
-    if(candidate.x < 0 || candidate.y < 0 || candidate.z < 0 || candidate.x + dims[0] > VOLUME.width || candidate.y + dims[1] > VOLUME.depth || candidate.z + dims[2] > VOLUME.height) return false;
-    for(let x = candidate.x; x < candidate.x + dims[0]; x++){
-      for(let y = candidate.y; y < candidate.y + dims[1]; y++){
-        for(let z = candidate.z; z < candidate.z + dims[2]; z++) if(this.isOccupied(x, y, z)) return false;
-      }
-    }
-    return true;
-  }
-
-  isOccupied(x, y, z){
-    return this.placed.some((placement)=>{
-      const dims = this.getDims(this.getItem(placement.id), placement.rot);
-      return x >= placement.x && x < placement.x + dims[0] && y >= placement.y && y < placement.y + dims[1] && z >= placement.z && z < placement.z + dims[2];
+  canOccupy(x, depth, dims){
+    if(x < 0 || depth < 0 || x + dims[0] > CARGO.width || depth + dims[1] > CARGO.depth) return false;
+    return !this.placed.some((placement)=>{
+      const other = this.getDims(this.getItem(placement.id), placement.rot);
+      return x < placement.x + other[0] && x + dims[0] > placement.x && depth < placement.depth + other[1] && depth + dims[1] > placement.depth;
     });
   }
 
-  getDims(item, rotation){
-    const [w, d, h] = item.dims;
-    return [[w,d,h],[d,w,h],[w,h,d],[h,w,d],[d,h,w],[h,d,w]][rotation % 6];
+  getFootprint(x, depth, dims){
+    return [
+      this.project(x, depth),
+      this.project(x + dims[0], depth),
+      this.project(x + dims[0], depth + dims[1]),
+      this.project(x, depth + dims[1])
+    ];
   }
 
-  project(x, depth, z){
-    const t = depth / VOLUME.depth;
-    const center = this.W * 0.60;
-    const nearHalf = this.W * 0.47;
-    const farHalf = this.W * 0.28;
+  project(x, depth){
+    const t = depth / CARGO.depth;
+    const center = this.W * 0.54;
+    const nearHalf = this.W * 0.43;
+    const farHalf = this.W * 0.25;
     const half = nearHalf + (farHalf - nearHalf) * t;
     return {
-      x:center + ((x / VOLUME.width) - 0.5) * half * 2,
-      y:704 - t * 356 - z * (48 - t * 14)
+      x:center + ((x / CARGO.width) - 0.5) * half * 2,
+      y:704 - t * 320
     };
+  }
+
+  getDims(item, rotation){
+    return rotation % 2 ? [item.dims[1], item.dims[0]] : item.dims;
   }
 
   getItem(id){ return ITEMS.find((item)=>item.id === id); }
