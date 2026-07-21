@@ -7,11 +7,12 @@ export class StartScene extends BaseScene {
   }
 
   create(){
-    this.addCoverImage("startScene");
+    this.sceneImage = this.addCoverImage("startScene");
     this.addTitleTreatment();
     this.addAmbientMotion();
     this.addStartControls();
     this.addSettingsButton();
+    this.input.once("pointerdown", () => this.startAmbientSound());
   }
 
   addTitleTreatment(){
@@ -40,28 +41,68 @@ export class StartScene extends BaseScene {
   }
 
   addAmbientMotion(){
-    const dust = this.add.graphics();
-    dust.fillStyle(0xe8c58b, 0.32);
-    [
-      [this.W * 0.67, this.H * 0.76, 2],
-      [this.W * 0.74, this.H * 0.80, 1.5],
-      [this.W * 0.82, this.H * 0.73, 2],
-      [this.W * 0.58, this.H * 0.84, 1]
-    ].forEach(([x, y, radius]) => dust.fillCircle(x, y, radius));
-
     this.tweens.add({
-      targets: dust,
-      alpha: 0.16,
-      duration: 2600,
+      targets: this.sceneImage,
+      y: this.H / 2 - 1.5,
+      angle: 0.08,
+      duration: 1800,
       yoyo: true,
       repeat: -1,
+      ease: "Sine.easeInOut"
+    });
+
+    const dust = this.add.graphics();
+    dust.fillStyle(0xe8c58b, 0.42);
+    const dustMotes = [
+      { x: this.W * 0.66, y: this.H * 0.76, r: 2.5, dx: 34, dy: -7, duration: 4200 },
+      { x: this.W * 0.73, y: this.H * 0.80, r: 1.8, dx: 26, dy: -4, duration: 3300 },
+      { x: this.W * 0.82, y: this.H * 0.73, r: 2.2, dx: 42, dy: -9, duration: 5100 },
+      { x: this.W * 0.58, y: this.H * 0.84, r: 1.4, dx: 22, dy: -3, duration: 2900 }
+    ];
+    dustMotes.forEach((mote, index) => {
+      const moteGraphic = this.add.graphics();
+      moteGraphic.fillStyle(0xe8c58b, 0.42);
+      moteGraphic.fillCircle(0, 0, mote.r);
+      moteGraphic.x = mote.x;
+      moteGraphic.y = mote.y;
+      this.tweens.add({
+        targets: moteGraphic,
+        x: mote.x + mote.dx,
+        y: mote.y + mote.dy,
+        alpha: 0.05,
+        duration: mote.duration,
+        delay: index * 480,
+        repeat: -1,
+        yoyo: true,
+        ease: "Sine.easeInOut"
+      });
+    });
+
+    const bird = this.add.graphics();
+    bird.lineStyle(2, 0x35251c, 0.82);
+    bird.beginPath();
+    bird.moveTo(-9, 2);
+    bird.quadraticBezierTo(-4, -4, 0, 0);
+    bird.quadraticBezierTo(4, -4, 9, 2);
+    bird.strokePath();
+    bird.x = this.W * 0.82;
+    bird.y = this.H * 0.20;
+    this.tweens.add({
+      targets: bird,
+      x: this.W * 0.25,
+      y: this.H * 0.27,
+      angle: -8,
+      duration: 12000,
+      delay: 3200,
+      repeat: -1,
+      yoyo: true,
       ease: "Sine.easeInOut"
     });
   }
 
   addStartControls(){
     const bottomShade = this.add.graphics();
-    bottomShade.fillGradientStyle(0x071016, 0x071016, 0x071016, 0x071016, 0.02, 0.16, 0.82, 0.94);
+    bottomShade.fillGradientStyle(0x071016, 0x071016, 0x071016, 0x071016, 0.00, 0.05, 0.36, 0.68);
     bottomShade.fillRect(0, this.H * 0.78, this.W, this.H * 0.22);
 
     this.addRetroButton(22, this.H - 112, this.W - 44, 42, "NOWA WYPRAWA", () => {
@@ -97,7 +138,11 @@ export class StartScene extends BaseScene {
 
     group.add([shadow, plate, text]);
     group.setSize(width, height);
-    group.setInteractive({ useHandCursor: true });
+    group.setInteractive(
+      new Phaser.Geom.Rectangle(0, 0, width, height),
+      Phaser.Geom.Rectangle.Contains,
+      { useHandCursor: true }
+    );
     group.on("pointerover", () => {
       plate.setAlpha(0.82);
       text.setColor("#ffffff");
@@ -108,6 +153,7 @@ export class StartScene extends BaseScene {
     });
     group.on("pointerdown", () => {
       group.setScale(0.98);
+      this.playUiSound();
       callback();
     });
     group.on("pointerup", () => group.setScale(1));
@@ -131,7 +177,61 @@ export class StartScene extends BaseScene {
     }
     group.add(g);
     group.setSize(34, 34);
-    group.setInteractive({ useHandCursor: true }).on("pointerdown", () => this.toggleSettings());
+    group.setInteractive(
+      new Phaser.Geom.Rectangle(-17, -17, 34, 34),
+      Phaser.Geom.Rectangle.Contains,
+      { useHandCursor: true }
+    ).on("pointerdown", () => {
+      this.playUiSound();
+      this.toggleSettings();
+    });
+  }
+
+  startAmbientSound(){
+    if(this.audioContext || this.getSave().music === false){
+      return;
+    }
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if(!AudioContextClass){
+      return;
+    }
+
+    this.audioContext = new AudioContextClass();
+    const buffer = this.audioContext.createBuffer(1, this.audioContext.sampleRate * 2, this.audioContext.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i = 0; i < data.length; i++){
+      data[i] = (Math.random() * 2 - 1) * 0.25;
+    }
+
+    const source = this.audioContext.createBufferSource();
+    const filter = this.audioContext.createBiquadFilter();
+    const gain = this.audioContext.createGain();
+    source.buffer = buffer;
+    source.loop = true;
+    filter.type = "lowpass";
+    filter.frequency.value = 520;
+    gain.gain.value = 0.018;
+    source.connect(filter).connect(gain).connect(this.audioContext.destination);
+    source.start();
+    this.audioSource = source;
+  }
+
+  playUiSound(){
+    this.startAmbientSound();
+    if(!this.audioContext || this.getSave().sfx === false){
+      return;
+    }
+
+    const oscillator = this.audioContext.createOscillator();
+    const gain = this.audioContext.createGain();
+    oscillator.type = "square";
+    oscillator.frequency.value = 330;
+    gain.gain.setValueAtTime(0.035, this.audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.08);
+    oscillator.connect(gain).connect(this.audioContext.destination);
+    oscillator.start();
+    oscillator.stop(this.audioContext.currentTime + 0.08);
   }
 
   toggleSettings(){
