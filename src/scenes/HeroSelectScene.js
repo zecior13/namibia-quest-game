@@ -127,11 +127,12 @@ export class HeroSelectScene extends BaseScene {
     if(!this.selectedLayer) return;
     this.selectedLayer.removeAll(true);
     const hero = this.hero;
-    const panelX = this.W * 0.43;
     const panelW = this.W * 0.53;
-    const portrait = hero.id === "kira"
-      ? this.add.image(0, 0, "heroKiraFull").setDisplaySize(this.H * 0.37, this.H * 0.37)
-      : this.add.image(0, 0, `heroFull-${hero.id}`).setDisplaySize(panelW * 0.78, this.H * 0.37);
+    const fullKey = hero.id === "kira" ? "heroKiraFull" : `heroFull-${hero.id}`;
+    const fullSource = this.textures.get(fullKey).getSourceImage();
+    const fullHeight = this.H * 0.37;
+    const fullWidth = fullHeight * (fullSource.width / fullSource.height);
+    const portrait = this.add.image(0, 0, fullKey).setDisplaySize(fullWidth, fullHeight);
     portrait.setPosition(this.W * 0.71, this.H * 0.50);
     this.selectedLayer.add(portrait);
 

@@ -35,7 +35,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   prepareHeroPortraits(){
-    const crops = {
+    const portraitCrops = {
       kira: [570, 105, 680, 680],
       nia: [735, 65, 720, 610],
       bruno: [800, 55, 650, 540],
@@ -44,19 +44,37 @@ export class BootScene extends Phaser.Scene {
       mira: [510, 95, 500, 650],
       alex: [500, 85, 510, 660]
     };
+    // These are the full-body panels already present in the canonical sheets.
+    // They are deliberately kept separate from bust crops so a character can
+    // never silently turn into a different pose or identity on this screen.
+    const fullCrops = {
+      kira: [90, 20, 560, 985],
+      nia: [220, 18, 505, 980],
+      bruno: [90, 18, 820, 986],
+      celeste: [80, 18, 760, 982],
+      tebo: [70, 18, 850, 986],
+      mira: [18, 86, 535, 1365],
+      alex: [16, 55, 590, 1395]
+    };
 
     HEROES.forEach((hero) => {
       const source = this.textures.get(`heroSheet-${hero.id}`).getSourceImage();
-      const crop = crops[hero.id];
+      const crop = portraitCrops[hero.id];
       const portrait = hero.id === "mira" || hero.id === "alex"
         ? { width: 180, height: 250 }
         : { width: 256, height: 256 };
       this.addHeroCropTexture(`heroPortrait-${hero.id}`, source, crop, portrait.width, portrait.height);
 
-      const full = hero.id === "mira" || hero.id === "alex"
-        ? { width: 360, height: 640 }
-        : { width: 420, height: 640 };
-      this.addHeroCropTexture(`heroFull-${hero.id}`, source, crops[hero.id], full.width, full.height);
+      if(hero.id !== "kira"){
+        const fullCrop = fullCrops[hero.id];
+        this.addHeroCropTexture(
+          `heroFull-${hero.id}`,
+          source,
+          fullCrop,
+          fullCrop[2],
+          fullCrop[3]
+        );
+      }
     });
   }
 
