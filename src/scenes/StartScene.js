@@ -71,16 +71,22 @@ export class StartScene extends BaseScene {
 
     const bird = this.add.image(this.W * 0.82, this.H * 0.20, "startBirdAlpha")
       .setDisplaySize(52, 47);
+    const flight = { progress: 0 };
+    let previousX = bird.x;
     this.tweens.add({
-      targets: bird,
-      x: this.W * 0.25,
-      y: this.H * 0.27,
-      angle: -8,
-      duration: 12000,
-      delay: 3200,
+      targets: flight,
+      progress: Math.PI * 2,
+      duration: 16000,
+      delay: 2200,
       repeat: -1,
-      yoyo: true,
-      ease: "Sine.easeInOut"
+      ease: "Linear",
+      onUpdate: () => {
+        const angle = flight.progress;
+        bird.x = this.W * 0.52 + Math.cos(angle) * this.W * 0.31;
+        bird.y = this.H * 0.235 + Math.sin(angle) * this.H * 0.075;
+        bird.setFlipX(bird.x > previousX);
+        previousX = bird.x;
+      }
     });
   }
 

@@ -71,6 +71,17 @@ export class BootScene extends Phaser.Scene {
       queue.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
     }
 
+    // The checkerboard also forms enclosed pockets beneath the vehicle.
+    // Remove only very bright neutral pixels so the illustrated paint and bags remain intact.
+    for(let offset = 0; offset < pixels.length; offset += 4){
+      const red = pixels[offset];
+      const green = pixels[offset + 1];
+      const blue = pixels[offset + 2];
+      if(red > 220 && green > 220 && blue > 220 && Math.max(red, green, blue) - Math.min(red, green, blue) < 35){
+        pixels[offset + 3] = 0;
+      }
+    }
+
     context.putImageData(image, 0, 0);
     this.textures.addCanvas("startVehicleAlpha", canvas);
   }
