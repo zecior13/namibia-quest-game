@@ -21,12 +21,12 @@ export class StartScene extends BaseScene {
   }
 
   addTitleTreatment(){
-    this.addOverlayText(24, this.H * 0.68, "NAMIBIA QUEST", 15, this.W - 48).setLetterSpacing(3);
-    this.addOverlayText(24, this.H * 0.715, "Retro Expedition RPG", 35, this.W - 48);
+    this.addOverlayText(24, this.H * 0.69, "NAMIBIA QUEST", 15, this.W - 48).setLetterSpacing(3);
+    this.addOverlayText(24, this.H * 0.735, "Namibia Quest", 39, this.W - 48);
     this.addOverlayText(
       24,
-      this.H * 0.815,
-      "Wybierz bohatera i rusz przez Namibię jak przez ręcznie rysowaną przygodę.",
+      this.H * 0.835,
+      "Wybierz bohatera i rusz przez Namibię jak przez ręcznie rysowaną wyprawę.",
       15,
       this.W - 48
     );
