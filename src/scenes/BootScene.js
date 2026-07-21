@@ -13,6 +13,11 @@ export class BootScene extends Phaser.Scene {
     this.load.image("packFoodCrate", "assets/pack/items/food-crate.png");
     this.load.image("packExtinguisher", "assets/pack/items/fire-extinguisher.png");
     this.load.image("packWarningTriangle", "assets/pack/items/warning-triangle.png");
+    this.load.image("packCompass3dRot", "assets/pack/items/compass-rot.png");
+    this.load.image("packRope3dRot", "assets/pack/items/rope-rot.png");
+    this.load.image("packFoodCrateRot", "assets/pack/items/food-crate-rot.png");
+    this.load.image("packExtinguisherRot", "assets/pack/items/fire-extinguisher-rot.png");
+    this.load.image("packWarningTriangleRot", "assets/pack/items/warning-triangle-rot.png");
   }
 
   create(){

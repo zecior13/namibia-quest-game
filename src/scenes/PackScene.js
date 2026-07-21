@@ -1,6 +1,7 @@
 import { BaseScene } from "./BaseScene.js";
 
 const CARGO = { width:7, depth:7 };
+const RASTER_GEAR = ["foodcrate", "extinguisher", "triangle", "compass", "rope"];
 const ITEMS = [
   { id:"tent", name:"Namiot", dims:[3,2], crop:[0,0,627,418], tint:0xb28b5b },
   { id:"water", name:"Kanister", dims:[2,3], crop:[627,0,627,418], tint:0x3e7593 },
@@ -8,11 +9,11 @@ const ITEMS = [
   { id:"duffel", name:"Torba", dims:[3,3], crop:[627,418,627,418], tint:0x8b7651 },
   { id:"tools", name:"Narzędzia", dims:[4,2], crop:[0,836,627,418], tint:0x375866 },
   { id:"cooler", name:"Lodówka", dims:[2,3], crop:[627,836,627,418], tint:0x4a8a89 },
-  { id:"compass", name:"Kompas", dims:[1,1], sourceKey:"packCompass3d", crop:[0,0,1254,1254], tint:0x9b7732 },
-  { id:"rope", name:"Lina", dims:[1,2], sourceKey:"packRope3d", crop:[0,0,887,1774], tint:0xa58452 },
-  { id:"foodcrate", name:"Skrzynia z prowiantem", dims:[3,1], sourceKey:"packFoodCrate", crop:[0,0,1774,887], tint:0xb88a4b },
-  { id:"extinguisher", name:"Gaśnica", dims:[2,1], sourceKey:"packExtinguisher", crop:[0,0,1254,1254], tint:0xb43b2f },
-  { id:"triangle", name:"Trójkąt ostrzegawczy", dims:[2,1], sourceKey:"packWarningTriangle", crop:[0,0,1254,1254], tint:0xb43b2f }
+  { id:"compass", name:"Kompas", dims:[1,1], sourceKey:"packCompass3d", rotatedSourceKey:"packCompass3dRot", crop:[0,0,1254,1254], rotatedCrop:[0,0,1254,1254], tint:0x9b7732 },
+  { id:"rope", name:"Lina", dims:[1,2], sourceKey:"packRope3d", rotatedSourceKey:"packRope3dRot", crop:[0,0,887,1774], rotatedCrop:[0,0,887,1774], tint:0xa58452 },
+  { id:"foodcrate", name:"Skrzynia z prowiantem", dims:[3,1], sourceKey:"packFoodCrate", rotatedSourceKey:"packFoodCrateRot", crop:[0,0,1774,887], rotatedCrop:[0,0,1774,887], tint:0xb88a4b },
+  { id:"extinguisher", name:"Gaśnica", dims:[2,1], sourceKey:"packExtinguisher", rotatedSourceKey:"packExtinguisherRot", crop:[0,0,1254,1254], rotatedCrop:[0,0,1254,1254], tint:0xb43b2f },
+  { id:"triangle", name:"Trójkąt ostrzegawczy", dims:[2,1], sourceKey:"packWarningTriangle", rotatedSourceKey:"packWarningTriangleRot", crop:[0,0,1254,1254], rotatedCrop:[0,0,1254,1254], tint:0xb43b2f }
 ];
 
 export class PackScene extends BaseScene {
@@ -39,12 +40,21 @@ export class PackScene extends BaseScene {
     const sources = { main:this.textures.get("packItems").getSourceImage() };
     ITEMS.forEach((item)=>{
       if(item.custom){ return; }
-      const [sx, sy, sw, sh] = item.crop;
+      this.makeItemTexture(item, item.sourceKey, item.crop, `pack-${item.id}`, sources.main);
+      if(item.rotatedSourceKey){
+        this.makeItemTexture(item, item.rotatedSourceKey, item.rotatedCrop, `pack-${item.id}-rot`, sources.main);
+      }
+    });
+    this.itemTexturesReady = true;
+  }
+
+  makeItemTexture(item, sourceKey, crop, textureKey, fallbackSource){
+      const [sx, sy, sw, sh] = crop;
       const canvas = document.createElement("canvas");
       canvas.width = sw;
       canvas.height = sh;
       const context = canvas.getContext("2d");
-      const source = item.sourceKey ? this.textures.get(item.sourceKey).getSourceImage() : sources.main;
+      const source = sourceKey ? this.textures.get(sourceKey).getSourceImage() : fallbackSource;
       context.drawImage(source, sx, sy, sw, sh, 0, 0, sw, sh);
       const pixels = context.getImageData(0, 0, sw, sh);
       for(let i = 0; i < pixels.data.length; i += 4){
@@ -54,7 +64,7 @@ export class PackScene extends BaseScene {
         if(green > red * 1.35 && green > blue * 1.25){ pixels.data[i + 3] = 0; }
       }
       context.putImageData(pixels, 0, 0);
-      if(["foodcrate", "extinguisher", "triangle"].includes(item.id)){
+      if(RASTER_GEAR.includes(item.id)){
         let minX = sw;
         let minY = sh;
         let maxX = -1;
@@ -79,13 +89,11 @@ export class PackScene extends BaseScene {
           trimmed.width = tw;
           trimmed.height = th;
           trimmed.getContext("2d").drawImage(canvas, tx, ty, tw, th, 0, 0, tw, th);
-          this.textures.addCanvas(`pack-${item.id}`, trimmed);
+          this.textures.addCanvas(textureKey, trimmed);
           return;
         }
       }
-      this.textures.addCanvas(`pack-${item.id}`, canvas);
-    });
-    this.itemTexturesReady = true;
+      this.textures.addCanvas(textureKey, canvas);
   }
 
   drawScene(){
@@ -400,16 +408,19 @@ export class PackScene extends BaseScene {
 
   createItemVisual(item, width, height, x, y, rotation, railPreview = false){
     if(["foodcrate", "extinguisher", "triangle", "compass", "rope"].includes(item.id)){
-      const texture = this.textures.get(`pack-${item.id}`);
+      const textureKey = rotation && item.rotatedSourceKey ? `pack-${item.id}-rot` : `pack-${item.id}`;
+      const texture = this.textures.get(textureKey);
       const aspect = texture.width / texture.height;
       const maxWidth = railPreview ? width * 0.82 : width * 0.9;
       const maxHeight = railPreview ? height * 0.82 : Infinity;
       const imageWidth = railPreview ? Math.min(maxWidth, maxHeight * aspect) : maxWidth;
       const imageHeight = imageWidth / aspect;
-      return this.add.image(x, y, `pack-${item.id}`)
-        .setDisplaySize(rotation ? imageHeight : imageWidth, rotation ? imageWidth : imageHeight)
+      return this.add.image(x, y, textureKey)
+        // Rotation changes the cargo footprint, not the camera or the sprite.
+        // Each raster object therefore keeps one upright, proportional view.
+        .setDisplaySize(imageWidth, imageHeight)
         .setPosition(x, railPreview ? y : y - Math.max(0, (imageHeight - height) * 0.5))
-        .setFlipX(rotation === 1);
+        .setFlipX(rotation === 1 && !item.rotatedSourceKey);
     }
 
     return this.add.image(x, y, `pack-${item.id}`)
