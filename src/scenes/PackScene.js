@@ -75,14 +75,18 @@ export class PackScene extends BaseScene {
   }
 
   drawHeader(){
-    this.add.text(14, 13, "WINDHOEK / BAGAŻNIK 4x4", {
-      fontFamily:"monospace", fontSize:"11px", fontStyle:"bold", color:"#f4d49c",
-      backgroundColor:"#182a2b", padding:{ left:7, right:7, top:5, bottom:5 }
+    const panel = this.add.graphics();
+    panel.fillStyle(0x182a2b, 0.86);
+    panel.fillRect(8, 8, this.W - 16, 42);
+    panel.lineStyle(1, 0xf4d49c, 0.4);
+    panel.strokeRect(8, 8, this.W - 16, 42);
+    this.add.text(14, 17, "WINDHOEK / BAGAŻNIK 4x4", {
+      fontFamily:"monospace", fontSize:"10px", fontStyle:"bold", color:"#f4d49c"
     });
-    this.add.text(this.W - 14, 16, `${this.placed.length} / ${ITEMS.length}`, {
-      fontFamily:"monospace", fontSize:"14px", fontStyle:"bold", color:"#f4d49c"
+    this.add.text(this.W - 14, 14, `${this.placed.length} / ${ITEMS.length}`, {
+      fontFamily:"monospace", fontSize:"12px", fontStyle:"bold", color:"#f4d49c"
     }).setOrigin(1, 0);
-    this.add.text(this.W - 14, 39, "POWIERZCHNIA 49 / 49 PÓL", {
+    this.add.text(this.W - 14, 31, "49 / 49 PÓL", {
       fontFamily:"monospace", fontSize:"8px", fontStyle:"bold", color:"#f4d49c"
     }).setOrigin(1, 0);
   }
@@ -125,7 +129,7 @@ export class PackScene extends BaseScene {
       g.lineBetween(near.x, near.y, far.x, far.y);
     }
 
-    this.add.text(this.W * 0.59, 372, "PRZESTRZEŃ ŁADUNKOWA  7 × 7", {
+    this.add.text(this.W * 0.59, 282, "PRZESTRZEŃ ŁADUNKOWA  7 × 7", {
       fontFamily:"monospace", fontSize:"9px", fontStyle:"bold", color:"#f4d49c",
       stroke:"#172423", strokeThickness:4
     }).setOrigin(0.5);
@@ -156,22 +160,29 @@ export class PackScene extends BaseScene {
   }
 
   drawItemRail(){
-    this.add.text(10, 300, "SPRZĘT", {
+    const rail = this.add.graphics();
+    rail.fillStyle(0x101d22, 0.48);
+    rail.fillRoundedRect(8, 58, this.W - 16, 210, 8);
+    rail.lineStyle(1, 0xf4d49c, 0.28);
+    rail.strokeRoundedRect(8, 58, this.W - 16, 210, 8);
+    this.add.text(14, 62, "SPRZĘT  ·  WYBIERZ PRZEDMIOT", {
       fontFamily:"monospace", fontSize:"10px", fontStyle:"bold", color:"#f4d49c",
       stroke:"#172423", strokeThickness:3
     });
+    let visibleIndex = 0;
     ITEMS.forEach((item, index)=>{
       if(this.placed.some((placement)=>placement.id === item.id) || this.active?.id === item.id){ return; }
-      const column = index % 2;
-      const row = Math.floor(index / 2);
-      const x = 6 + column * 82;
-      const y = 326 + row * 56;
+      const column = visibleIndex % 3;
+      const row = Math.floor(visibleIndex / 3);
+      const x = 14 + column * 124;
+      const y = 84 + row * 44;
+      visibleIndex += 1;
       const frame = this.add.graphics();
       frame.fillStyle(0x182a2b, 0.9);
-      frame.fillRoundedRect(x, y, 76, 46, 7);
+      frame.fillRoundedRect(x, y, 112, 36, 6);
       frame.lineStyle(1, item.tint, 0.9);
-      frame.strokeRoundedRect(x, y, 76, 46, 7);
-      const image = this.createItemVisual(item, 68, 40, x + 38, y + 23, 0);
+      frame.strokeRoundedRect(x, y, 112, 36, 6);
+      const image = this.createItemVisual(item, 96, 32, x + 56, y + 18, 0);
       image.setInteractive({ useHandCursor:true }).on("pointerdown", ()=>this.selectItem(item.id));
     });
   }
@@ -402,6 +413,8 @@ export class PackScene extends BaseScene {
       g.fillRect(-bodyW * 0.4, bodyH * 0.12, bodyW * 0.8, Math.max(2, height * 0.05));
     }else if(item.id === "compass"){
       const radius = Math.min(width, height) * 0.42;
+      g.fillStyle(0x2a2720, 0.9);
+      g.fillCircle(2, 4, radius + 3);
       g.fillStyle(0x8f6728, 1);
       g.fillCircle(0, 0, radius);
       g.lineStyle(Math.max(1, width * 0.035), 0xe1bc62, 0.95);
@@ -416,6 +429,8 @@ export class PackScene extends BaseScene {
     }else{
       const bodyW = width * 0.52;
       const bodyH = height * 0.76;
+      g.fillStyle(0x1c2725, 0.9);
+      g.fillRoundedRect(-bodyW / 2 + 3, -bodyH / 2 + height * 0.08 + 4, bodyW, bodyH, Math.max(3, width * 0.08));
       g.fillStyle(0x3a4743, 1);
       g.fillRoundedRect(-bodyW / 2, -bodyH / 2 + height * 0.08, bodyW, bodyH, Math.max(3, width * 0.08));
       g.lineStyle(Math.max(1, width * 0.035), 0xb7a77a, 0.78);
