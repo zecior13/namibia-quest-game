@@ -9,7 +9,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image("cargoScene", "assets/pack/cargo-scene.png");
     this.load.image("packItems", "assets/pack/pack-items.png");
     this.load.image("packCompass", "assets/pack/pack-compass.png");
-    this.load.image("packRadio", "assets/pack/pack-radio.png");
+    this.load.image("packNewGear", "assets/pack/pack-new-gear.png");
   }
 
   create(){

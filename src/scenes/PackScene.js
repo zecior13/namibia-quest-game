@@ -9,10 +9,10 @@ const ITEMS = [
   { id:"tools", name:"Narzędzia", dims:[4,2], crop:[0,836,627,418], tint:0x375866 },
   { id:"cooler", name:"Lodówka", dims:[2,3], crop:[627,836,627,418], tint:0x4a8a89 },
   { id:"compass", name:"Kompas", dims:[1,1], sourceKey:"packCompass", crop:[0,0,627,1254], tint:0x9b7732 },
-  { id:"radio", name:"Radio", dims:[1,2], sourceKey:"packRadio", crop:[0,0,627,1254], tint:0x4f5e59 },
-  { id:"foodcrate", name:"Skrzynia z prowiantem", dims:[3,1], custom:true, tint:0xb88a4b },
-  { id:"extinguisher", name:"Gaśnica", dims:[2,1], custom:true, tint:0xb43b2f },
-  { id:"gasstove", name:"Butla z palnikiem", dims:[2,1], custom:true, tint:0x277b82 }
+  { id:"rope", name:"Lina", dims:[1,2], custom:true, tint:0xa58452 },
+  { id:"foodcrate", name:"Skrzynia z prowiantem", dims:[3,1], sourceKey:"packNewGear", crop:[0,0,418,1254], tint:0xb88a4b },
+  { id:"extinguisher", name:"Gaśnica", dims:[2,1], sourceKey:"packNewGear", crop:[418,0,418,1254], tint:0xb43b2f },
+  { id:"gasstove", name:"Butla z palnikiem", dims:[2,1], sourceKey:"packNewGear", crop:[836,0,418,1254], tint:0x277b82 }
 ];
 
 export class PackScene extends BaseScene {
@@ -54,6 +54,35 @@ export class PackScene extends BaseScene {
         if(green > red * 1.35 && green > blue * 1.25){ pixels.data[i + 3] = 0; }
       }
       context.putImageData(pixels, 0, 0);
+      if(item.sourceKey === "packNewGear"){
+        let minX = sw;
+        let minY = sh;
+        let maxX = -1;
+        let maxY = -1;
+        for(let y = 0; y < sh; y++){
+          for(let x = 0; x < sw; x++){
+            if(pixels.data[(y * sw + x) * 4 + 3] > 12){
+              minX = Math.min(minX, x);
+              minY = Math.min(minY, y);
+              maxX = Math.max(maxX, x);
+              maxY = Math.max(maxY, y);
+            }
+          }
+        }
+        if(maxX >= minX && maxY >= minY){
+          const margin = 12;
+          const trimmed = document.createElement("canvas");
+          const tx = Math.max(0, minX - margin);
+          const ty = Math.max(0, minY - margin);
+          const tw = Math.min(sw - tx, maxX - tx + 1 + margin * 2);
+          const th = Math.min(sh - ty, maxY - ty + 1 + margin * 2);
+          trimmed.width = tw;
+          trimmed.height = th;
+          trimmed.getContext("2d").drawImage(canvas, tx, ty, tw, th, 0, 0, tw, th);
+          this.textures.addCanvas(`pack-${item.id}`, trimmed);
+          return;
+        }
+      }
       this.textures.addCanvas(`pack-${item.id}`, canvas);
     });
     this.itemTexturesReady = true;
@@ -368,7 +397,13 @@ export class PackScene extends BaseScene {
   }
 
   createItemVisual(item, width, height, x, y, rotation){
-    if(!["compass", "radio", "foodcrate", "extinguisher", "gasstove"].includes(item.id)){
+    if(!["compass", "rope"].includes(item.id)){
+      if(["foodcrate", "extinguisher", "gasstove"].includes(item.id)){
+        const image = this.add.image(x, y, `pack-${item.id}`)
+          .setDisplaySize(width * 0.9, height * 0.9)
+          .setRotation(rotation ? Math.PI / 2 : 0);
+        return image;
+      }
       return this.add.image(x, y, `pack-${item.id}`)
         .setDisplaySize(width, height)
         // The source art is a standing object. Turning the footprint must not
@@ -378,70 +413,20 @@ export class PackScene extends BaseScene {
 
     const group = this.add.container(x, y);
     const g = this.add.graphics();
-    if(item.id === "foodcrate"){
+    if(item.id === "rope"){
       const horizontal = width >= height;
-      const crateW = horizontal ? width * 0.82 : height * 0.72;
-      const crateH = horizontal ? height * 0.72 : width * 0.82;
-      g.fillStyle(0x634328, 0.95);
-      g.fillRoundedRect(-crateW / 2 + 3, -crateH / 2 + 4, crateW, crateH, 3);
-      g.fillStyle(0xb88a4b, 1);
-      g.fillRoundedRect(-crateW / 2, -crateH / 2, crateW, crateH, 3);
-      g.lineStyle(Math.max(1, Math.min(width, height) * 0.07), 0x714a2c, 1);
-      g.strokeRoundedRect(-crateW / 2, -crateH / 2, crateW, crateH, 3);
-      g.lineBetween(-crateW * 0.35, -crateH * 0.32, crateW * 0.35, -crateH * 0.32);
-      g.lineBetween(-crateW * 0.35, crateH * 0.32, crateW * 0.35, crateH * 0.32);
-      g.fillStyle(0xd8b86e, 1);
-      const produce = horizontal ? [
-        [-crateW * 0.28, -crateH * 0.22, crateH * 0.22],
-        [0, -crateH * 0.3, crateH * 0.24],
-        [crateW * 0.25, -crateH * 0.18, crateH * 0.2]
-      ] : [[0, -crateH * 0.3, crateW * 0.22]];
-      produce.forEach(([px, py, radius])=>g.fillCircle(px, py, radius));
-      g.fillStyle(0x6f963f, 1);
-      g.fillTriangle(-crateW * 0.02, -crateH * 0.34, crateW * 0.1, -crateH * 0.58, crateW * 0.16, -crateH * 0.28);
-    }else if(item.id === "extinguisher"){
-      const horizontal = width >= height;
-      const bodyW = horizontal ? width * 0.62 : width * 0.34;
-      const bodyH = horizontal ? height * 0.58 : height * 0.72;
-      const bodyX = horizontal ? -width * 0.08 : 0;
-      const bodyY = horizontal ? 0 : height * 0.05;
-      g.fillStyle(0x641e1c, 0.95);
-      g.fillRoundedRect(bodyX - bodyW / 2 + 3, bodyY - bodyH / 2 + 4, bodyW, bodyH, bodyH * 0.22);
-      g.fillStyle(0xc33c30, 1);
-      g.fillRoundedRect(bodyX - bodyW / 2, bodyY - bodyH / 2, bodyW, bodyH, bodyH * 0.22);
-      g.lineStyle(Math.max(1, Math.min(width, height) * 0.06), 0xe06d48, 0.9);
-      g.strokeRoundedRect(bodyX - bodyW / 2, bodyY - bodyH / 2, bodyW, bodyH, bodyH * 0.22);
-      g.fillStyle(0xbfc1b2, 1);
-      if(horizontal){
-        g.fillRect(bodyX - bodyW * 0.38, -height * 0.42, bodyW * 0.3, height * 0.18);
-        g.lineStyle(Math.max(2, height * 0.08), 0x1e2928, 1);
-        g.lineBetween(bodyX + bodyW * 0.25, -bodyH * 0.25, width * 0.42, -height * 0.4);
-      }else{
-        g.fillRect(-bodyW * 0.3, -bodyH * 0.58, bodyW * 0.6, height * 0.16);
-        g.lineStyle(Math.max(2, width * 0.08), 0x1e2928, 1);
-        g.lineBetween(bodyW * 0.22, -bodyH * 0.42, width * 0.42, -height * 0.48);
-      }
-      g.fillStyle(0xf1dfb0, 1);
-      g.fillRect(bodyX - bodyW * 0.28, bodyY - height * 0.05, bodyW * 0.56, Math.max(2, height * 0.08));
-    }else if(item.id === "gasstove"){
-      const horizontal = width >= height;
-      const tankW = horizontal ? width * 0.58 : width * 0.38;
-      const tankH = horizontal ? height * 0.62 : height * 0.68;
-      const tankX = horizontal ? -width * 0.12 : 0;
-      g.fillStyle(0x14545c, 0.95);
-      g.fillEllipse(tankX + 2, 4, tankW + 5, tankH + 5);
-      g.fillStyle(0x2c8890, 1);
-      g.fillEllipse(tankX, 0, tankW, tankH);
-      g.lineStyle(Math.max(1, Math.min(width, height) * 0.06), 0x8cc2b6, 0.8);
-      g.strokeEllipse(tankX, 0, tankW, tankH);
-      g.fillStyle(0x8c6b32, 1);
-      const burnerX = horizontal ? width * 0.32 : 0;
-      const burnerY = horizontal ? -height * 0.22 : -tankH * 0.52;
-      g.fillCircle(burnerX, burnerY, Math.max(4, Math.min(width, height) * 0.18));
-      g.fillStyle(0xe0b95c, 1);
-      g.fillCircle(burnerX, burnerY, Math.max(2, Math.min(width, height) * 0.09));
-      g.lineStyle(Math.max(1, Math.min(width, height) * 0.05), 0x6d4924, 1);
-      g.lineBetween(burnerX, burnerY, horizontal ? width * 0.42 : width * 0.16, horizontal ? height * 0.2 : -height * 0.16);
+      const coilW = horizontal ? width * 0.76 : width * 0.56;
+      const coilH = horizontal ? height * 0.56 : height * 0.76;
+      const stroke = Math.max(2, Math.min(width, height) * 0.08);
+      g.lineStyle(stroke + 2, 0x3a2719, 0.95);
+      g.strokeEllipse(0, 3, coilW, coilH);
+      g.lineStyle(stroke, 0xb8955b, 1);
+      g.strokeEllipse(0, 0, coilW, coilH);
+      g.lineStyle(Math.max(1, stroke * 0.45), 0xe2c17a, 0.85);
+      g.strokeEllipse(0, -1, coilW * 0.72, coilH * 0.68);
+      g.lineStyle(Math.max(1, stroke * 0.6), 0xb8955b, 1);
+      g.lineBetween(-coilW * 0.48, coilH * 0.1, -coilW * 0.62, coilH * 0.34);
+      g.lineBetween(coilW * 0.48, -coilH * 0.1, coilW * 0.62, -coilH * 0.34);
     }else if(item.id === "compass"){
       const radius = Math.min(width, height) * 0.42;
       g.fillStyle(0x2a2720, 0.9);
@@ -457,21 +442,6 @@ export class PackScene extends BaseScene {
       g.fillStyle(0xb84631, 1);
       g.fillTriangle(0, -radius * 0.58, radius * 0.12, radius * 0.18, 0, 0);
       g.fillCircle(0, 0, Math.max(2, radius * 0.12));
-    }else{
-      const bodyW = width * 0.52;
-      const bodyH = height * 0.76;
-      g.fillStyle(0x1c2725, 0.9);
-      g.fillRoundedRect(-bodyW / 2 + 3, -bodyH / 2 + height * 0.08 + 4, bodyW, bodyH, Math.max(3, width * 0.08));
-      g.fillStyle(0x3a4743, 1);
-      g.fillRoundedRect(-bodyW / 2, -bodyH / 2 + height * 0.08, bodyW, bodyH, Math.max(3, width * 0.08));
-      g.lineStyle(Math.max(1, width * 0.035), 0xb7a77a, 0.78);
-      g.strokeRoundedRect(-bodyW / 2, -bodyH / 2 + height * 0.08, bodyW, bodyH, Math.max(3, width * 0.08));
-      g.fillStyle(0x1e2826, 1);
-      g.fillRoundedRect(-bodyW * 0.3, -bodyH * 0.16, bodyW * 0.6, bodyH * 0.08, 2);
-      g.fillRoundedRect(-bodyW * 0.3, 0, bodyW * 0.6, bodyH * 0.08, 2);
-      g.fillStyle(0x3a4743, 1);
-      g.fillRoundedRect(-width * 0.035, -height * 0.49, width * 0.07, height * 0.22, 2);
-      g.fillCircle(width * 0.18, -bodyH * 0.26, Math.max(2, width * 0.06));
     }
     group.add(g);
     group.setSize(width, height);
