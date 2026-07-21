@@ -172,6 +172,8 @@ export class PackScene extends BaseScene {
     this.command(132, 808, "▶", ()=>this.nudgeActive(1));
     this.command(186, 808, "↺ OBRÓĆ", ()=>this.rotateActive());
     this.command(286, 808, "PCHNIJ", ()=>this.pushActive());
+    this.command(92, 774, "↶ COFNIJ", ()=>this.undoLast());
+    this.command(224, 774, "RESET", ()=>this.resetPacking());
     if(this.placed.length === ITEMS.length){
       this.add.text(this.W - 12, 774, "RUSZAJ →", {
         fontFamily:"monospace", fontSize:"13px", fontStyle:"bold", color:"#f1c873"
@@ -207,16 +209,25 @@ export class PackScene extends BaseScene {
     const local = (point)=>({ x:point.x - center.x, y:point.y - center.y });
     const points = footprint.map(local);
 
-    footprintGraphic.fillStyle(item.tint, active ? 0.28 : 0.13);
-    footprintGraphic.beginPath();
-    points.forEach((point, index)=>index ? footprintGraphic.lineTo(point.x, point.y) : footprintGraphic.moveTo(point.x, point.y));
-    footprintGraphic.closePath();
-    footprintGraphic.fillPath();
-    footprintGraphic.lineStyle(1.5, active ? 0xf3d28d : item.tint, active ? 0.86 : 0.42);
-    footprintGraphic.strokePath();
+    const lift = Math.max(5, Math.min(12, height * 0.13));
+    const lifted = points.map((point)=>({ x:point.x, y:point.y - lift }));
+    const drawQuad = (quad, fill, fillAlpha, lineAlpha)=>{
+      footprintGraphic.fillStyle(fill, fillAlpha);
+      footprintGraphic.beginPath();
+      quad.forEach((point, index)=>index ? footprintGraphic.lineTo(point.x, point.y) : footprintGraphic.moveTo(point.x, point.y));
+      footprintGraphic.closePath();
+      footprintGraphic.fillPath();
+      footprintGraphic.lineStyle(1.5, active ? 0xf3d28d : item.tint, lineAlpha);
+      footprintGraphic.strokePath();
+    };
+    // A fixed-height side band gives every item the same readable 2.5D language.
+    drawQuad([points[0], points[1], lifted[1], lifted[0]], item.tint, active ? 0.42 : 0.25, active ? 0.86 : 0.46);
+    drawQuad([lifted[0], lifted[1], lifted[2], lifted[3]], item.tint, active ? 0.28 : 0.14, active ? 0.86 : 0.42);
+    drawQuad([points[1], points[2], lifted[2], lifted[1]], item.tint, active ? 0.34 : 0.2, active ? 0.82 : 0.4);
+    drawQuad(points, item.tint, active ? 0.14 : 0.08, active ? 0.9 : 0.35);
     view.add(footprintGraphic);
 
-    const image = this.add.image(0, -height * 0.08, `pack-${item.id}`)
+    const image = this.add.image(0, -height * 0.14 - lift * 0.45, `pack-${item.id}`)
       .setDisplaySize(width * 0.9, Math.max(24, height * 0.82))
       .setAlpha(active ? 1 : 0.94)
       .setAngle((placement.rot % 2) * 90);
@@ -300,6 +311,30 @@ export class PackScene extends BaseScene {
     this.placed.push({ id:item.id, x, depth, rot:this.active.rot });
     this.active = null;
     this.message = "Przedmiot wsunięty. Układaj dalej, zostawiając jak najmniej szczelin.";
+    this.drawScene();
+  }
+
+  undoLast(){
+    if(this.active){
+      this.active = null;
+      this.message = "Przedmiot odłożony z powrotem na listę.";
+      this.drawScene();
+      return;
+    }
+    if(!this.placed.length){
+      this.message = "Nie ma jeszcze czego cofnąć.";
+      this.drawScene();
+      return;
+    }
+    const removed = this.placed.pop();
+    this.message = `${this.getItem(removed.id).name.toUpperCase()} wyjęty. Możesz ułożyć go inaczej.`;
+    this.drawScene();
+  }
+
+  resetPacking(){
+    this.placed = [];
+    this.active = null;
+    this.message = "Układ wyzerowany. Wybierz sprzęt i zacznij od nowa.";
     this.drawScene();
   }
 
