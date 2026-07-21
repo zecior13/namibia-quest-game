@@ -7,7 +7,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image("titleMap", "assets/art/title-map-style-a.png");
     this.load.image("startScene", "assets/art/start-scene-namibia.png");
     this.load.image("startPlate", "assets/art/start-scene-plate.png");
-    this.load.image("startVehicleAlpha", "assets/art/start-scene-vehicle-alpha.png");
+    this.load.image("startVehicleFinal", "assets/art/start-scene-vehicle-alpha.png?v=3");
     this.load.image("heroDriver", "assets/art/hero-driver-kapitan-4x4.png");
     this.load.image("cargoScene", "assets/pack/cargo-scene.png");
     this.load.image("packItems", "assets/pack/pack-items.png");

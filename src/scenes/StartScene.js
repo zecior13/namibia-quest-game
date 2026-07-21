@@ -91,7 +91,7 @@ export class StartScene extends BaseScene {
   }
 
   addVehicleLayer(){
-    const vehicle = this.add.image(this.W * 0.33, this.H * 0.65, "startVehicleAlpha");
+    const vehicle = this.add.image(this.W * 0.33, this.H * 0.65, "startVehicleFinal");
     const vehicleWidth = this.W * 0.90;
     const vehicleHeight = vehicleWidth * 1.5;
     vehicle.setDisplaySize(vehicleWidth, vehicleHeight);
