@@ -64,7 +64,7 @@ export class MapScene extends BaseScene {
 
       if(point.id === "windhoek"){
         this.add.zone(x - 24, y - 24, 120, 48).setOrigin(0).setInteractive({ useHandCursor:true }).on("pointerdown", ()=>{
-          this.scene.start("WindhoekScene");
+          this.scene.start("PackScene");
         });
       }
     });
@@ -85,7 +85,7 @@ export class MapScene extends BaseScene {
       fontStyle:"bold",
       color:"#42525c"
     });
-    this.addButton(40, 778, 142, 44, "Windhoek", () => this.scene.start("WindhoekScene"), { small:true });
+    this.addButton(40, 778, 142, 44, "Windhoek", () => this.scene.start("PackScene"), { small:true });
     this.addButton(196, 778, 154, 44, "Postać", () => this.scene.start("HeroSelectScene"), { secondary:true, small:true });
   }
 
