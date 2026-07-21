@@ -73,15 +73,15 @@ export class HeroSelectScene extends BaseScene {
   addHeroGrid(){
     const x = 14;
     const gridTop = 98;
-    const tileW = Math.min(54, (this.W * 0.46 - 32) / 3);
-    const tileH = 72;
+    const tileW = Math.min(58, (this.W * 0.46 - 32) / 3);
     const gap = 6;
 
     HEROES.forEach((hero, index) => {
       const row = index < 3 ? 0 : index < 5 ? 1 : 2;
       const column = index < 3 ? index : index < 5 ? index - 3 : index - 5;
+      const tileH = index >= 5 ? 80 : 58;
       const tileX = x + column * (tileW + gap);
-      const tileY = gridTop + row * (tileH + 9);
+      const tileY = row === 0 ? gridTop : row === 1 ? gridTop + 67 : gridTop + 136;
       this.selection[index] = this.addHeroTile(tileX, tileY, tileW, tileH, hero, index);
     });
     this.selectHero(this.heroIndex);
@@ -95,9 +95,9 @@ export class HeroSelectScene extends BaseScene {
     frame.lineStyle(2, 0xb28a50, 0.78);
     frame.strokeRoundedRect(0, 0, w, h, 7);
 
-    const portrait = this.addCroppedHero(hero, "bust", w * 1.12, h * 1.08);
-    portrait.setPosition(w / 2, h * 0.45);
-    group.add([frame, portrait]);
+    const portrait = this.add.image(w / 2, h / 2, `heroPortrait-${hero.id}`);
+    portrait.setDisplaySize(w, h);
+    group.add([portrait, frame]);
     group.setSize(w, h);
     group.setInteractive(new Phaser.Geom.Rectangle(0, 0, w, h), Phaser.Geom.Rectangle.Contains);
     group.on("pointerdown", () => this.selectHero(index));
@@ -129,28 +129,28 @@ export class HeroSelectScene extends BaseScene {
     const panelX = this.W * 0.43;
     const panelW = this.W * 0.53;
     const portrait = hero.id === "kira"
-      ? this.add.image(0, 0, "heroKiraFull").setDisplaySize(this.W * 0.50, this.H * 0.37)
-      : this.addCroppedHero(hero, "full", panelW * 0.78, this.H * 0.37);
+      ? this.add.image(0, 0, "heroKiraFull").setDisplaySize(this.H * 0.37, this.H * 0.37)
+      : this.add.image(0, 0, `heroFull-${hero.id}`).setDisplaySize(panelW * 0.78, this.H * 0.37);
     portrait.setPosition(this.W * 0.71, this.H * 0.50);
     this.selectedLayer.add(portrait);
 
-    this.selectedLayer.add(this.add.text(this.W * 0.045, this.H * 0.405, hero.name, {
+    this.selectedLayer.add(this.add.text(this.W * 0.045, this.H * 0.40, hero.name, {
       fontFamily: "Georgia", fontSize: "14px", fontStyle: "bold", color: "#f4d79b",
       wordWrap: { width: this.W * 0.34 }, shadow: { offsetY: 2, color: "#05080b", blur: 4, fill: true }
     }));
-    this.selectedLayer.add(this.add.text(this.W * 0.045, this.H * 0.49, hero.role.toUpperCase(), {
+    this.selectedLayer.add(this.add.text(this.W * 0.045, this.H * 0.47, hero.role.toUpperCase(), {
       fontFamily: "Georgia", fontSize: "10px", fontStyle: "bold", color: "#e0af58", letterSpacing: 1,
       wordWrap: { width: this.W * 0.34 }
     }));
-    this.selectedLayer.add(this.add.text(this.W * 0.045, this.H * 0.56, hero.note, {
-      fontFamily: "Georgia", fontSize: "11px", color: "#f3e2bc", lineSpacing: 2,
+    this.selectedLayer.add(this.add.text(this.W * 0.045, this.H * 0.53, hero.note, {
+      fontFamily: "Georgia", fontSize: "11px", color: "#f3e2bc", lineSpacing: 1,
       wordWrap: { width: this.W * 0.34 }, shadow: { offsetY: 2, color: "#05080b", blur: 4, fill: true }
     }));
 
     const stats = Object.keys(STAT_LABELS);
     stats.forEach((stat, index) => {
       const statX = this.W * 0.045 + (index % 2) * (this.W * 0.18);
-      const statY = this.H * 0.70 + Math.floor(index / 2) * 20;
+      const statY = this.H * 0.65 + Math.floor(index / 2) * 20;
       this.selectedLayer.add(this.add.text(statX, statY, `${STAT_LABELS[stat].toUpperCase()} ${hero.stats[stat]}`, {
         fontFamily: "Georgia", fontSize: "11px", fontStyle: "bold", color: "#f0d397"
       }));

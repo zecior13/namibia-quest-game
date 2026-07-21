@@ -1,4 +1,4 @@
-import { HERO_SHEETS } from "../data/heroes.js";
+import { HEROES, HERO_SHEETS } from "../data/heroes.js";
 
 export class BootScene extends Phaser.Scene {
   constructor(){
@@ -30,7 +30,58 @@ export class BootScene extends Phaser.Scene {
 
   create(){
     this.prepareBirdTexture();
+    this.prepareHeroPortraits();
     this.scene.start("StartScene");
+  }
+
+  prepareHeroPortraits(){
+    const crops = {
+      kira: [570, 105, 680, 680],
+      nia: [735, 65, 720, 610],
+      bruno: [800, 55, 650, 540],
+      celeste: [805, 40, 650, 570],
+      tebo: [820, 35, 650, 600],
+      mira: [510, 95, 500, 650],
+      alex: [500, 85, 510, 660]
+    };
+
+    HEROES.forEach((hero) => {
+      const source = this.textures.get(`heroSheet-${hero.id}`).getSourceImage();
+      const crop = crops[hero.id];
+      const portrait = hero.id === "mira" || hero.id === "alex"
+        ? { width: 180, height: 250 }
+        : { width: 256, height: 256 };
+      this.addHeroCropTexture(`heroPortrait-${hero.id}`, source, crop, portrait.width, portrait.height);
+
+      const full = hero.id === "mira" || hero.id === "alex"
+        ? { width: 360, height: 640 }
+        : { width: 420, height: 640 };
+      this.addHeroCropTexture(`heroFull-${hero.id}`, source, crops[hero.id], full.width, full.height);
+    });
+  }
+
+  addHeroCropTexture(key, source, crop, width, height){
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    const sourceRatio = crop[2] / crop[3];
+    const targetRatio = width / height;
+    let sx = crop[0];
+    let sy = crop[1];
+    let sw = crop[2];
+    let sh = crop[3];
+
+    if(sourceRatio > targetRatio){
+      sw = crop[3] * targetRatio;
+      sx += (crop[2] - sw) / 2;
+    }else if(sourceRatio < targetRatio){
+      sh = crop[2] / targetRatio;
+      sy += (crop[3] - sh) / 2;
+    }
+    context.imageSmoothingEnabled = true;
+    context.drawImage(source, sx, sy, sw, sh, 0, 0, width, height);
+    this.textures.addCanvas(key, canvas);
   }
 
   prepareBirdTexture(){
