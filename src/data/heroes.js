@@ -1,51 +1,66 @@
 export const HEROES = [
   {
-    id: "driver",
-    name: "Kapitan 4x4",
-    role: "Kierowca wyprawowy",
-    color: 0x9b4f2f,
-    stats: { sila: 7, spryt: 5, spokoj: 8, tempo: 6 },
-    note: "Pewna ręka na szutrze. Gdy droga robi się zła, on robi się lepszy."
+    id: "kira",
+    name: "Kira \"Red Dust\" Moyo",
+    role: "Kierowczyni i liderka",
+    color: 0x9b3f32,
+    stats: { sila: 6, spryt: 5, spokoj: 8, tempo: 5 },
+    note: "Pewna ręka na szutrze i chłodna głowa, kiedy droga robi się zła.",
+    sheet: "assets/characters/sheets/kira-red-dust-moyo.png"
   },
   {
-    id: "tracker",
-    name: "Tropicielka Szczegółów",
-    role: "Ślady i ukryte przejścia",
-    color: 0x187f7a,
-    stats: { sila: 4, spryt: 9, spokoj: 7, tempo: 5 },
-    note: "Widziała trop zanim reszta zobaczyła piasek."
+    id: "nia",
+    name: "Nia \"Trail\" Kambonde",
+    role: "Tropicielka i przewodniczka",
+    color: 0x718f42,
+    stats: { sila: 5, spryt: 8, spokoj: 7, tempo: 4 },
+    note: "Widziała trop, zanim reszta zobaczyła piasek.",
+    sheet: "assets/characters/sheets/nia-trail-kambonde.png"
   },
   {
-    id: "logistician",
-    name: "Mistrz Logistyki",
-    role: "Planowanie i zasoby",
-    color: 0xbe7b2d,
-    stats: { sila: 5, spryt: 8, spokoj: 6, tempo: 3 },
-    note: "Ma wszystko. Czasem nawet za dużo."
+    id: "bruno",
+    name: "Bruno \"Cargo Bay\" Krüger",
+    role: "Mechanik i logistyk",
+    color: 0x315d78,
+    stats: { sila: 9, spryt: 6, spokoj: 4, tempo: 5 },
+    note: "Ma wszystko, co potrzebne. Czasem nawet za dużo.",
+    sheet: "assets/characters/sheets/bruno-cargo-bay-kruger.png"
   },
   {
-    id: "daredevil",
-    name: "Ryzykant Adrenaliny",
-    role: "Prędkość i reakcje",
-    color: 0xd36b2d,
-    stats: { sila: 6, spryt: 4, spokoj: 3, tempo: 10 },
-    note: "Najpierw jedzie, potem pyta czy była droga."
+    id: "celeste",
+    name: "Celeste \"Hotelowa\" Ferreira",
+    role: "Turystka z przypadku",
+    color: 0xc95f70,
+    stats: { sila: 3, spryt: 7, spokoj: 6, tempo: 8 },
+    note: "Przyjechała jak do hotelu, ale zaskakująco dobrze wychodzi z kłopotów.",
+    sheet: "assets/characters/sheets/celeste-hotelowa-ferreira.png"
   },
   {
-    id: "chatterbox",
-    name: "Negocjator Opowieści",
-    role: "Rozmowy i handel",
-    color: 0x23749a,
-    stats: { sila: 3, spryt: 7, spokoj: 8, tempo: 4 },
-    note: "Mówi dużo, ale ludzie często kończą rozmowę z uśmiechem."
+    id: "tebo",
+    name: "Tebo \"Gaduła\" Ndlovu",
+    role: "Negocjator i gawędziarz",
+    color: 0xd66b24,
+    stats: { sila: 4, spryt: 9, spokoj: 5, tempo: 6 },
+    note: "Mówi dużo, ale ludzie często kończą rozmowę z uśmiechem.",
+    sheet: "assets/characters/sheets/tebo-gadala-ndlovu.png"
   },
   {
-    id: "diva",
-    name: "Safari Diva",
-    role: "Styl i zimna krew",
-    color: 0xa65a73,
-    stats: { sila: 2, spryt: 6, spokoj: 8, tempo: 5 },
-    note: "Przyjechała jak do hotelu, ale umie wyjść z niezręcznych sytuacji."
+    id: "mira",
+    name: "Mira \"Migawka\" Nakamura",
+    role: "Fotografka i obserwatorka",
+    color: 0x6d4b86,
+    stats: { sila: 4, spryt: 7, spokoj: 9, tempo: 4 },
+    note: "Czeka cierpliwie, aż świat sam ustawi się w dobrym kadrze.",
+    sheet: "assets/characters/sheets/mira-migawka-nakamura.png"
+  },
+  {
+    id: "alex",
+    name: "Alex \"Błysk\" Carter",
+    role: "Kierowca i zwiadowca",
+    color: 0xf1eee3,
+    stats: { sila: 5, spryt: 6, spokoj: 4, tempo: 9 },
+    note: "Najpierw jedzie, potem pyta, czy droga rzeczywiście tam była.",
+    sheet: "assets/characters/sheets/alex-blysk-carter.png"
   }
 ];
 
