@@ -43,12 +43,13 @@ export class StartScene extends BaseScene {
   addAmbientMotion(){
     this.tweens.add({
       targets: this.sceneImage,
-      y: this.H / 2 - 1.5,
-      angle: 0.08,
-      duration: 1800,
+      y: this.H / 2 - 2,
+      duration: 115,
       yoyo: true,
       repeat: -1,
-      ease: "Sine.easeInOut"
+      ease: "Quad.easeOut",
+      hold: 70,
+      repeatDelay: 90
     });
 
     const dust = this.add.graphics();
@@ -78,17 +79,9 @@ export class StartScene extends BaseScene {
       });
     });
 
-    const bird = this.add.graphics();
-    bird.lineStyle(2, 0x35251c, 0.82);
-    bird.beginPath();
-    bird.moveTo(-9, 2);
-    bird.lineTo(-4, -3);
-    bird.lineTo(0, 0);
-    bird.lineTo(4, -3);
-    bird.lineTo(9, 2);
-    bird.strokePath();
-    bird.x = this.W * 0.82;
-    bird.y = this.H * 0.20;
+    const bird = this.add.image(this.W * 0.82, this.H * 0.20, "startScene")
+      .setCrop(770, 140, 100, 85)
+      .setDisplaySize(50, 43);
     this.tweens.add({
       targets: bird,
       x: this.W * 0.25,
@@ -140,25 +133,24 @@ export class StartScene extends BaseScene {
 
     group.add([shadow, plate, text]);
     group.setSize(width, height);
-    group.setInteractive(
-      new Phaser.Geom.Rectangle(0, 0, width, height),
-      Phaser.Geom.Rectangle.Contains,
-      { useHandCursor: true }
-    );
-    group.on("pointerover", () => {
+    const zone = this.add.zone(x, y, width, height)
+      .setOrigin(0)
+      .setInteractive({ useHandCursor: true });
+    zone.on("pointerover", () => {
       plate.setAlpha(0.82);
       text.setColor("#ffffff");
     });
-    group.on("pointerout", () => {
+    zone.on("pointerout", () => {
       plate.setAlpha(1);
       text.setColor("#fff2cf");
     });
-    group.on("pointerdown", () => {
+    zone.on("pointerdown", () => {
       group.setScale(0.98);
       this.playUiSound();
       callback();
     });
-    group.on("pointerup", () => group.setScale(1));
+    zone.on("pointerup", () => group.setScale(1));
+    zone.on("pointerout", () => group.setScale(1));
     return group;
   }
 
