@@ -91,28 +91,10 @@ export class StartScene extends BaseScene {
   }
 
   addVehicleLayer(){
-    const vehicle = this.add.image(this.W * 0.33, this.H * 0.65, "startVehicleFinal");
-    const vehicleWidth = this.W * 0.90;
-    const vehicleHeight = vehicleWidth * 1.5;
+    const vehicle = this.add.image(this.W * 0.42, this.H * 0.72, "startVehicleClean");
+    const vehicleWidth = this.W * 1.18;
+    const vehicleHeight = vehicleWidth * (1024 / 1536);
     vehicle.setDisplaySize(vehicleWidth, vehicleHeight);
-
-    // Keep the illustrated vehicle silhouette while excluding the enclosed backdrop pockets.
-    const maskShape = this.make.graphics({ add: false });
-    const left = vehicle.x - vehicleWidth / 2;
-    const top = vehicle.y - vehicleHeight / 2;
-    maskShape.fillStyle(0xffffff, 1);
-    maskShape.fillPoints([
-      { x: left + vehicleWidth * 0.04, y: top + vehicleHeight * 0.37 },
-      { x: left + vehicleWidth * 0.69, y: top + vehicleHeight * 0.37 },
-      { x: left + vehicleWidth * 0.78, y: top + vehicleHeight * 0.48 },
-      { x: left + vehicleWidth * 0.98, y: top + vehicleHeight * 0.57 },
-      { x: left + vehicleWidth * 0.98, y: top + vehicleHeight * 0.76 },
-      { x: left + vehicleWidth * 0.05, y: top + vehicleHeight * 0.78 },
-      { x: left + vehicleWidth * 0.02, y: top + vehicleHeight * 0.63 }
-    ], true);
-    maskShape.fillCircle(left + vehicleWidth * 0.18, top + vehicleHeight * 0.84, vehicleWidth * 0.15);
-    maskShape.fillCircle(left + vehicleWidth * 0.80, top + vehicleHeight * 0.84, vehicleWidth * 0.15);
-    vehicle.setMask(maskShape.createGeometryMask());
     this.tweens.add({
       targets: vehicle,
       y: vehicle.y - 2.5,
