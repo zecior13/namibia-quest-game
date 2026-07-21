@@ -1,3 +1,5 @@
+import { HERO_SHEETS } from "../data/heroes.js";
+
 export class BootScene extends Phaser.Scene {
   constructor(){
     super("BootScene");
@@ -9,6 +11,8 @@ export class BootScene extends Phaser.Scene {
     this.load.image("startPlate", "assets/art/start-scene-plate.png");
     this.load.image("startVehicleClean", "assets/art/start-scene-vehicle-clean.png?v=1");
     this.load.image("heroDriver", "assets/art/hero-driver-kapitan-4x4.png");
+    this.load.image("heroSelectStyle", "assets/art/hero-select-style-a.png");
+    HERO_SHEETS.forEach(({ key, path }) => this.load.image(key, path));
     this.load.image("cargoScene", "assets/pack/cargo-scene.png");
     this.load.image("packItems", "assets/pack/pack-items.png");
     this.load.image("packCompass3d", "assets/pack/items/compass.png");

@@ -70,3 +70,8 @@ export const STAT_LABELS = {
   spokoj: "Spokój",
   tempo: "Tempo"
 };
+
+export const HERO_SHEETS = HEROES.map((hero) => ({
+  key: `heroSheet-${hero.id}`,
+  path: hero.sheet
+}));
