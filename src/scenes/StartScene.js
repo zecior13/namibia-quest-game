@@ -82,8 +82,10 @@ export class StartScene extends BaseScene {
     bird.lineStyle(2, 0x35251c, 0.82);
     bird.beginPath();
     bird.moveTo(-9, 2);
-    bird.quadraticBezierTo(-4, -4, 0, 0);
-    bird.quadraticBezierTo(4, -4, 9, 2);
+    bird.lineTo(-4, -3);
+    bird.lineTo(0, 0);
+    bird.lineTo(4, -3);
+    bird.lineTo(9, 2);
     bird.strokePath();
     bird.x = this.W * 0.82;
     bird.y = this.H * 0.20;
