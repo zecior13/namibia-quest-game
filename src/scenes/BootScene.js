@@ -71,6 +71,6 @@ export class BootScene extends Phaser.Scene {
     }
 
     context.putImageData(image, 0, 0);
-    this.textures.addCanvas("startVehicleAlpha", canvas, true);
+    this.textures.addCanvas("startVehicleAlpha", canvas);
   }
 }
