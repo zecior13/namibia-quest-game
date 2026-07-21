@@ -8,8 +8,8 @@ const ITEMS = [
   { id:"duffel", name:"Torba", dims:[3,3], crop:[627,418,627,418], tint:0x8b7651 },
   { id:"tools", name:"Narzędzia", dims:[4,2], crop:[0,836,627,418], tint:0x375866 },
   { id:"cooler", name:"Lodówka", dims:[2,3], crop:[627,836,627,418], tint:0x4a8a89 },
-  { id:"compass", name:"Kompas", dims:[1,1], sourceKey:"packCompass", crop:[0,0,627,1254], tint:0x9b7732 },
-  { id:"rope", name:"Lina", dims:[1,2], custom:true, tint:0xa58452 },
+  { id:"compass", name:"Kompas", dims:[1,1], sourceKey:"packCompass3d", crop:[0,0,1254,1254], tint:0x9b7732 },
+  { id:"rope", name:"Lina", dims:[1,2], sourceKey:"packRope3d", crop:[0,0,887,1774], tint:0xa58452 },
   { id:"foodcrate", name:"Skrzynia z prowiantem", dims:[3,1], sourceKey:"packFoodCrate", crop:[0,0,1774,887], tint:0xb88a4b },
   { id:"extinguisher", name:"Gaśnica", dims:[2,1], sourceKey:"packExtinguisher", crop:[0,0,1254,1254], tint:0xb43b2f },
   { id:"triangle", name:"Trójkąt ostrzegawczy", dims:[2,1], sourceKey:"packWarningTriangle", crop:[0,0,1254,1254], tint:0xb43b2f }
@@ -211,8 +211,10 @@ export class PackScene extends BaseScene {
       frame.fillRoundedRect(x, y, 112, 36, 6);
       frame.lineStyle(1, item.tint, 0.9);
       frame.strokeRoundedRect(x, y, 112, 36, 6);
-      const image = this.createItemVisual(item, 96, 32, x + 56, y + 18, 0, true);
-      image.setInteractive({ useHandCursor:true }).on("pointerdown", ()=>this.selectItem(item.id));
+      this.createItemVisual(item, 96, 32, x + 56, y + 18, 0, true);
+      this.add.rectangle(x + 56, y + 18, 112, 36, 0, 0)
+        .setInteractive({ useHandCursor:true })
+        .on("pointerdown", ()=>this.selectItem(item.id));
     });
   }
 
@@ -397,62 +399,24 @@ export class PackScene extends BaseScene {
   }
 
   createItemVisual(item, width, height, x, y, rotation, railPreview = false){
-    if(!["compass", "rope"].includes(item.id)){
-      if(["foodcrate", "extinguisher", "triangle"].includes(item.id)){
-        const texture = this.textures.get(`pack-${item.id}`);
-        const aspect = texture.width / texture.height;
-        const maxWidth = railPreview ? width * 0.82 : width * 0.9;
-        const maxHeight = railPreview ? height * 0.82 : Infinity;
-        const imageWidth = railPreview ? Math.min(maxWidth, maxHeight * aspect) : maxWidth;
-        const imageHeight = imageWidth / aspect;
-        const image = this.add.image(x, y, `pack-${item.id}`)
-          .setDisplaySize(rotation ? imageHeight : imageWidth, rotation ? imageWidth : imageHeight)
-          .setPosition(x, railPreview ? y : y - Math.max(0, (imageHeight - height) * 0.5))
-          .setRotation(rotation ? Math.PI / 2 : 0);
-        return image;
-      }
+    if(["foodcrate", "extinguisher", "triangle", "compass", "rope"].includes(item.id)){
+      const texture = this.textures.get(`pack-${item.id}`);
+      const aspect = texture.width / texture.height;
+      const maxWidth = railPreview ? width * 0.82 : width * 0.9;
+      const maxHeight = railPreview ? height * 0.82 : Infinity;
+      const imageWidth = railPreview ? Math.min(maxWidth, maxHeight * aspect) : maxWidth;
+      const imageHeight = imageWidth / aspect;
       return this.add.image(x, y, `pack-${item.id}`)
-        .setDisplaySize(width, height)
-        // The source art is a standing object. Turning the footprint must not
-        // make a refrigerator or radio appear to lie on its side.
+        .setDisplaySize(rotation ? imageHeight : imageWidth, rotation ? imageWidth : imageHeight)
+        .setPosition(x, railPreview ? y : y - Math.max(0, (imageHeight - height) * 0.5))
         .setFlipX(rotation === 1);
     }
 
-    const group = this.add.container(x, y);
-    const g = this.add.graphics();
-    if(item.id === "rope"){
-      const horizontal = width >= height;
-      const coilW = horizontal ? width * 0.76 : width * 0.56;
-      const coilH = horizontal ? height * 0.56 : height * 0.76;
-      const stroke = Math.max(2, Math.min(width, height) * 0.08);
-      g.lineStyle(stroke + 2, 0x3a2719, 0.95);
-      g.strokeEllipse(0, 3, coilW, coilH);
-      g.lineStyle(stroke, 0xb8955b, 1);
-      g.strokeEllipse(0, 0, coilW, coilH);
-      g.lineStyle(Math.max(1, stroke * 0.45), 0xe2c17a, 0.85);
-      g.strokeEllipse(0, -1, coilW * 0.72, coilH * 0.68);
-      g.lineStyle(Math.max(1, stroke * 0.6), 0xb8955b, 1);
-      g.lineBetween(-coilW * 0.48, coilH * 0.1, -coilW * 0.62, coilH * 0.34);
-      g.lineBetween(coilW * 0.48, -coilH * 0.1, coilW * 0.62, -coilH * 0.34);
-    }else if(item.id === "compass"){
-      const radius = Math.min(width, height) * 0.42;
-      g.fillStyle(0x2a2720, 0.9);
-      g.fillCircle(2, 4, radius + 3);
-      g.fillStyle(0x8f6728, 1);
-      g.fillCircle(0, 0, radius);
-      g.lineStyle(Math.max(1, width * 0.035), 0xe1bc62, 0.95);
-      g.strokeCircle(0, 0, radius);
-      g.fillStyle(0xe3d19b, 1);
-      g.fillCircle(0, 0, radius * 0.72);
-      g.fillStyle(0x423526, 1);
-      g.fillTriangle(0, -radius * 0.58, -radius * 0.12, radius * 0.18, 0, 0);
-      g.fillStyle(0xb84631, 1);
-      g.fillTriangle(0, -radius * 0.58, radius * 0.12, radius * 0.18, 0, 0);
-      g.fillCircle(0, 0, Math.max(2, radius * 0.12));
-    }
-    group.add(g);
-    group.setSize(width, height);
-    return group;
+    return this.add.image(x, y, `pack-${item.id}`)
+      .setDisplaySize(width, height)
+      // The source art is a standing object. Turning the footprint must not
+      // make a refrigerator or radio appear to lie on its side.
+      .setFlipX(rotation === 1);
   }
 
   findRestingDepth(x, dims){
