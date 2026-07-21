@@ -77,7 +77,9 @@ export class BootScene extends Phaser.Scene {
       const red = pixels[offset];
       const green = pixels[offset + 1];
       const blue = pixels[offset + 2];
-      if(red > 220 && green > 220 && blue > 220 && Math.max(red, green, blue) - Math.min(red, green, blue) < 35){
+      const pixelY = Math.floor((offset / 4) / canvas.width);
+      const isLowerBackdrop = pixelY > canvas.height * 0.70;
+      if(isLowerBackdrop && red > 170 && green > 170 && blue > 170 && Math.max(red, green, blue) - Math.min(red, green, blue) < 40){
         pixels[offset + 3] = 0;
       }
     }
