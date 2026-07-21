@@ -9,54 +9,55 @@ export class StartScene extends BaseScene {
     this.addCoverImage("titleMap");
     this.addDarkVignette();
     this.addTitleTreatment();
-    this.addStartHotspots();
+    this.addStartMenu();
   }
 
   addDarkVignette(){
     const g = this.add.graphics();
-    g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.04, 0.04, 0.72, 0.82);
+    g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.02, 0.02, 0.42, 0.72);
     g.fillRect(0, 0, this.W, this.H);
-    g.fillStyle(0x0b1620, 0.34);
-    g.fillRect(0, this.H * 0.72, this.W, this.H * 0.28);
+    g.fillStyle(0x071016, 0.46);
+    g.fillRect(0, this.H * 0.70, this.W, this.H * 0.30);
   }
 
   addTitleTreatment(){
-    this.addOverlayText(24, this.H * 0.69, "NAMIBIA QUEST", 15, this.W - 48).setLetterSpacing(3);
-    this.addOverlayText(24, this.H * 0.735, "Namibia Quest", 39, this.W - 48);
+    this.addOverlayText(24, this.H * 0.675, "NAMIBIA QUEST", 15, this.W - 48).setLetterSpacing(3);
+    this.addOverlayText(24, this.H * 0.725, "Namibia Quest", 39, this.W - 48);
     this.addOverlayText(
       24,
-      this.H * 0.835,
+      this.H * 0.815,
       "Wybierz bohatera i rusz przez Namibię jak przez ręcznie rysowaną wyprawę.",
       15,
       this.W - 48
     );
   }
 
-  addStartHotspots(){
-    this.addGameButton(24, this.H - 118, this.W - 48, 50, "Rozpocznij grę", () => {
-      this.scene.start("HeroSelectScene");
-    });
-
-    this.addGameButton(24, this.H - 58, this.W - 48, 42, "Kontynuuj", () => {
-      this.scene.start("MapScene");
-    }, true);
+  addStartMenu(){
+    const y = this.H - 82;
+    this.addMenuItem(28, y, "NOWA WYPRAWA", () => this.scene.start("HeroSelectScene"));
+    this.addMenuItem(222, y, "WCZYTAJ", () => this.scene.start("MapScene"), true);
   }
 
-  addGameButton(x, y, w, h, label, callback, secondary = false){
-    const g = this.add.graphics();
-    g.fillStyle(secondary ? 0x192c36 : 0x0f879f, secondary ? 0.78 : 0.92);
-    g.fillRoundedRect(x, y, w, h, 16);
-    g.lineStyle(2, 0xffe1a1, secondary ? 0.16 : 0.28);
-    g.strokeRoundedRect(x, y, w, h, 16);
-
-    this.add.text(x + w / 2, y + h / 2, label, {
+  addMenuItem(x, y, label, callback, secondary = false){
+    const color = secondary ? "#d6b982" : "#fff0c2";
+    const activeColor = secondary ? "#fff0c2" : "#ffffff";
+    const prefix = secondary ? "" : "▸ ";
+    const text = this.add.text(x, y, `${prefix}${label}`, {
       fontFamily: "Georgia",
-      fontSize: secondary ? "17px" : "20px",
+      fontSize: secondary ? "16px" : "18px",
       fontStyle: "bold",
-      color: "#fff3d2",
-      shadow: { offsetY: 2, color: "#1b120c", blur: 4, fill: true }
-    }).setOrigin(0.5);
+      color,
+      shadow: { offsetY: 2, color: "#05090d", blur: 5, fill: true }
+    }).setOrigin(0, 0.5);
 
-    this.add.zone(x, y, w, h).setOrigin(0).setInteractive({ useHandCursor: true }).on("pointerdown", callback);
+    const bounds = text.getBounds();
+    const zone = this.add.zone(bounds.x - 8, y - 20, bounds.width + 16, 40)
+      .setOrigin(0)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerover", () => text.setColor(activeColor))
+      .on("pointerout", () => text.setColor(color))
+      .on("pointerdown", callback);
+
+    return zone;
   }
 }

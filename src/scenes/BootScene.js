@@ -5,7 +5,7 @@ export class BootScene extends Phaser.Scene {
 
   preload(){
     this.load.image("titleMap", "assets/art/title-map-style-a.png");
-    this.load.image("heroSelectArt", "assets/art/hero-select-style-a.png");
+    this.load.image("heroDriver", "assets/art/hero-driver-kapitan-4x4.png");
   }
 
   create(){
