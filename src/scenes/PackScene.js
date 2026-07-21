@@ -1,6 +1,6 @@
 import { BaseScene } from "./BaseScene.js";
 
-const CARGO = { width:6, depth:7 };
+const CARGO = { width:7, depth:7 };
 const ITEMS = [
   { id:"tent", name:"Namiot", dims:[3,2], crop:[0,0,627,418], tint:0xb28b5b },
   { id:"water", name:"Kanister", dims:[2,3], crop:[627,0,627,418], tint:0x3e7593 },
@@ -9,7 +9,10 @@ const ITEMS = [
   { id:"tools", name:"Narzędzia", dims:[4,2], crop:[0,836,627,418], tint:0x375866 },
   { id:"cooler", name:"Lodówka", dims:[2,3], crop:[627,836,627,418], tint:0x4a8a89 },
   { id:"compass", name:"Kompas", dims:[1,1], sourceKey:"packCompass", crop:[0,0,627,1254], tint:0x9b7732 },
-  { id:"radio", name:"Radio", dims:[1,2], sourceKey:"packRadio", crop:[0,0,627,1254], tint:0x4f5e59 }
+  { id:"radio", name:"Radio", dims:[1,2], sourceKey:"packRadio", crop:[0,0,627,1254], tint:0x4f5e59 },
+  { id:"map", name:"Mapa", dims:[1,2], custom:true, tint:0x9d7042 },
+  { id:"rope", name:"Lina", dims:[1,2], custom:true, tint:0xa58452 },
+  { id:"flashlight", name:"Latarka", dims:[1,3], custom:true, tint:0x53666a }
 ];
 
 export class PackScene extends BaseScene {
@@ -35,6 +38,7 @@ export class PackScene extends BaseScene {
     if(this.itemTexturesReady){ return; }
     const sources = { main:this.textures.get("packItems").getSourceImage() };
     ITEMS.forEach((item)=>{
+      if(item.custom){ return; }
       const [sx, sy, sw, sh] = item.crop;
       const canvas = document.createElement("canvas");
       canvas.width = sw;
@@ -78,7 +82,7 @@ export class PackScene extends BaseScene {
     this.add.text(this.W - 14, 16, `${this.placed.length} / ${ITEMS.length}`, {
       fontFamily:"monospace", fontSize:"14px", fontStyle:"bold", color:"#f4d49c"
     }).setOrigin(1, 0);
-    this.add.text(this.W - 14, 39, "POWIERZCHNIA 42 / 42 PÓL", {
+    this.add.text(this.W - 14, 39, "POWIERZCHNIA 49 / 49 PÓL", {
       fontFamily:"monospace", fontSize:"8px", fontStyle:"bold", color:"#f4d49c"
     }).setOrigin(1, 0);
   }
@@ -121,7 +125,7 @@ export class PackScene extends BaseScene {
       g.lineBetween(near.x, near.y, far.x, far.y);
     }
 
-    this.add.text(this.W * 0.59, 372, "PRZESTRZEŃ ŁADUNKOWA  6 × 7", {
+    this.add.text(this.W * 0.59, 372, "PRZESTRZEŃ ŁADUNKOWA  7 × 7", {
       fontFamily:"monospace", fontSize:"9px", fontStyle:"bold", color:"#f4d49c",
       stroke:"#172423", strokeThickness:4
     }).setOrigin(0.5);
@@ -218,7 +222,7 @@ export class PackScene extends BaseScene {
     const local = (point)=>({ x:point.x - center.x, y:point.y - center.y });
     const points = footprint.map(local);
 
-    const lift = Math.max(5, Math.min(12, height * 0.13));
+    const lift = Math.max(7, Math.min(15, height * 0.16));
     const lifted = points.map((point)=>({ x:point.x, y:point.y - lift }));
     const drawQuad = (quad, fill, fillAlpha, lineAlpha)=>{
       footprintGraphic.fillStyle(fill, fillAlpha);
@@ -322,11 +326,6 @@ export class PackScene extends BaseScene {
       return;
     }
     const candidate = { id:item.id, x, depth, rot:this.active.rot };
-    if(!this.canComplete([...this.placed, candidate])){
-      this.message = "Ta pozycja blokuje dalsze pakowanie. Przesuń albo obróć przedmiot.";
-      this.drawScene();
-      return;
-    }
     this.placed.push(candidate);
     this.active = null;
     this.message = "Przedmiot wsunięty. Układaj dalej, zostawiając jak najmniej szczelin.";
@@ -358,7 +357,7 @@ export class PackScene extends BaseScene {
   }
 
   createItemVisual(item, width, height, x, y, rotation){
-    if(item.id !== "compass" && item.id !== "radio"){
+    if(!["compass", "radio", "map", "rope", "flashlight"].includes(item.id)){
       return this.add.image(x, y, `pack-${item.id}`)
         .setDisplaySize(width, height)
         // The source art is a standing object. Turning the footprint must not
@@ -368,7 +367,40 @@ export class PackScene extends BaseScene {
 
     const group = this.add.container(x, y);
     const g = this.add.graphics();
-    if(item.id === "compass"){
+    if(item.id === "map"){
+      const w = width * 0.78;
+      const h = height * 0.68;
+      g.fillStyle(0x65472d, 1);
+      g.fillRoundedRect(-w / 2 + 2, -h / 2 + 4, w, h, Math.max(2, width * 0.06));
+      g.fillStyle(0xd4b879, 1);
+      g.fillRoundedRect(-w / 2, -h / 2, w, h, Math.max(2, width * 0.06));
+      g.lineStyle(Math.max(1, width * 0.025), 0x80613b, 0.9);
+      g.strokeRoundedRect(-w / 2, -h / 2, w, h, Math.max(2, width * 0.06));
+      g.lineStyle(Math.max(1, width * 0.025), 0x9a6f41, 0.9);
+      g.lineBetween(-w * 0.24, -h * 0.18, w * 0.22, -h * 0.28);
+      g.lineBetween(-w * 0.18, h * 0.2, w * 0.28, h * 0.08);
+    }else if(item.id === "rope"){
+      const radius = Math.min(width, height) * 0.27;
+      g.lineStyle(Math.max(3, width * 0.09), 0x553d29, 1);
+      g.strokeCircle(1, 3, radius + 2);
+      g.lineStyle(Math.max(2, width * 0.065), 0xc39b5e, 1);
+      g.strokeCircle(0, 0, radius);
+      g.strokeCircle(0, 0, radius * 0.6);
+      g.lineBetween(-radius * 0.9, radius * 0.18, radius * 1.25, radius * 0.18);
+    }else if(item.id === "flashlight"){
+      const bodyW = width * 0.34;
+      const bodyH = height * 0.68;
+      g.fillStyle(0x2a3435, 1);
+      g.fillRoundedRect(-bodyW / 2 + 2, -bodyH / 2 + 4, bodyW, bodyH, 3);
+      g.fillStyle(0x657477, 1);
+      g.fillRoundedRect(-bodyW / 2, -bodyH / 2, bodyW, bodyH, 3);
+      g.fillStyle(0xd1b66b, 1);
+      g.fillCircle(0, -bodyH * 0.43, bodyW * 0.38);
+      g.fillStyle(0x273232, 1);
+      g.fillCircle(0, -bodyH * 0.43, bodyW * 0.2);
+      g.fillStyle(0x9c843e, 1);
+      g.fillRect(-bodyW * 0.4, bodyH * 0.12, bodyW * 0.8, Math.max(2, height * 0.05));
+    }else if(item.id === "compass"){
       const radius = Math.min(width, height) * 0.42;
       g.fillStyle(0x8f6728, 1);
       g.fillCircle(0, 0, radius);
@@ -401,10 +433,10 @@ export class PackScene extends BaseScene {
   }
 
   findRestingDepth(x, dims){
-    for(let depth = CARGO.depth - dims[1]; depth >= 0; depth--){
-      if(this.canOccupy(x, depth, dims)) return depth;
-    }
-    return null;
+    if(!this.canOccupy(x, 0, dims)) return null;
+    let depth = 0;
+    while(depth + 1 <= CARGO.depth - dims[1] && this.canOccupy(x, depth + 1, dims)) depth++;
+    return depth;
   }
 
   canOccupy(x, depth, dims){
@@ -413,47 +445,6 @@ export class PackScene extends BaseScene {
       const other = this.getDims(this.getItem(placement.id), placement.rot);
       return x < placement.x + other[0] && x + dims[0] > placement.x && depth < placement.depth + other[1] && depth + dims[1] > placement.depth;
     });
-  }
-
-  canComplete(placed){
-    const remaining = ITEMS
-      .filter((item)=>!placed.some((placement)=>placement.id === item.id))
-      .sort((a, b)=>b.dims[0] * b.dims[1] - a.dims[0] * a.dims[1]);
-    const search = (index, board)=>{
-      if(index === remaining.length) return true;
-      const item = remaining[index];
-      for(let rotation = 0; rotation < 2; rotation++){
-        const dims = this.getDims(item, rotation);
-        for(let depth = CARGO.depth - dims[1]; depth >= 0; depth--){
-          for(let x = 0; x <= CARGO.width - dims[0]; x++){
-            if(!this.boardCanOccupy(board, x, depth, dims)) continue;
-            const next = board.map((row)=>row.slice());
-            for(let yy = depth; yy < depth + dims[1]; yy++){
-              for(let xx = x; xx < x + dims[0]; xx++) next[yy][xx] = true;
-            }
-            if(search(index + 1, next)) return true;
-          }
-        }
-      }
-      return false;
-    };
-    const board = Array.from({ length:CARGO.depth }, ()=>Array(CARGO.width).fill(false));
-    placed.forEach((placement)=>{
-      const dims = this.getDims(this.getItem(placement.id), placement.rot);
-      for(let yy = placement.depth; yy < placement.depth + dims[1]; yy++){
-        for(let xx = placement.x; xx < placement.x + dims[0]; xx++) board[yy][xx] = true;
-      }
-    });
-    return search(0, board);
-  }
-
-  boardCanOccupy(board, x, depth, dims){
-    for(let yy = depth; yy < depth + dims[1]; yy++){
-      for(let xx = x; xx < x + dims[0]; xx++){
-        if(board[yy][xx]) return false;
-      }
-    }
-    return true;
   }
 
   getFootprint(x, depth, dims){
