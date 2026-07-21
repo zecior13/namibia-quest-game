@@ -35,7 +35,8 @@ body{
 
 #game{
   width:min(100vw, 430px);
-  height:min(100vh, 932px);
+  height:min(100%, 932px);
+  max-height:calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow:hidden;
   border-radius:28px;
   background:#112b3d;

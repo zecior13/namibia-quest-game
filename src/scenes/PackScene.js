@@ -391,26 +391,47 @@ export class PackScene extends BaseScene {
       g.lineBetween(-w * 0.24, -h * 0.18, w * 0.22, -h * 0.28);
       g.lineBetween(-w * 0.18, h * 0.2, w * 0.28, h * 0.08);
     }else if(item.id === "rope"){
-      const radius = Math.min(width, height) * 0.27;
-      g.lineStyle(Math.max(3, width * 0.09), 0x553d29, 1);
-      g.strokeCircle(1, 3, radius + 2);
-      g.lineStyle(Math.max(2, width * 0.065), 0xc39b5e, 1);
-      g.strokeCircle(0, 0, radius);
-      g.strokeCircle(0, 0, radius * 0.6);
-      g.lineBetween(-radius * 0.9, radius * 0.18, radius * 1.25, radius * 0.18);
+      const horizontal = rotation % 2 === 1;
+      const coilW = horizontal ? width * 0.72 : width * 0.52;
+      const coilH = horizontal ? height * 0.56 : height * 0.72;
+      g.lineStyle(Math.max(3, Math.min(width, height) * 0.12), 0x553d29, 1);
+      g.strokeEllipse(2, 4, coilW, coilH);
+      g.lineStyle(Math.max(2, Math.min(width, height) * 0.085), 0xc39b5e, 1);
+      g.strokeEllipse(0, 0, coilW, coilH);
+      g.strokeEllipse(0, 0, coilW * 0.66, coilH * 0.66);
+      if(horizontal){
+        g.lineBetween(-coilW * 0.5, 0, -width * 0.42, height * 0.12);
+        g.lineBetween(coilW * 0.48, 0, width * 0.42, -height * 0.12);
+      }else{
+        g.lineBetween(0, -coilH * 0.5, width * 0.18, -height * 0.4);
+        g.lineBetween(0, coilH * 0.48, -width * 0.18, height * 0.4);
+      }
     }else if(item.id === "flashlight"){
-      const bodyW = width * 0.34;
-      const bodyH = height * 0.68;
-      g.fillStyle(0x2a3435, 1);
-      g.fillRoundedRect(-bodyW / 2 + 2, -bodyH / 2 + 4, bodyW, bodyH, 3);
+      const horizontal = rotation % 2 === 1;
+      const bodyW = horizontal ? width * 0.68 : width * 0.34;
+      const bodyH = horizontal ? height * 0.34 : height * 0.68;
+      g.fillStyle(0x1c2725, 0.9);
+      g.fillRoundedRect(
+        horizontal ? -bodyW / 2 + 4 : -bodyW / 2 + 3,
+        horizontal ? -bodyH / 2 + 3 : -bodyH / 2 + 4,
+        bodyW,
+        bodyH,
+        3
+      );
       g.fillStyle(0x657477, 1);
       g.fillRoundedRect(-bodyW / 2, -bodyH / 2, bodyW, bodyH, 3);
+      const lensX = horizontal ? bodyW * 0.43 : 0;
+      const lensY = horizontal ? 0 : -bodyH * 0.43;
       g.fillStyle(0xd1b66b, 1);
-      g.fillCircle(0, -bodyH * 0.43, bodyW * 0.38);
+      g.fillCircle(lensX, lensY, Math.max(4, Math.min(width, height) * 0.18));
       g.fillStyle(0x273232, 1);
-      g.fillCircle(0, -bodyH * 0.43, bodyW * 0.2);
+      g.fillCircle(lensX, lensY, Math.max(2, Math.min(width, height) * 0.09));
       g.fillStyle(0x9c843e, 1);
-      g.fillRect(-bodyW * 0.4, bodyH * 0.12, bodyW * 0.8, Math.max(2, height * 0.05));
+      if(horizontal){
+        g.fillRect(-bodyW * 0.12, -height * 0.4, bodyW * 0.24, Math.max(2, height * 0.08));
+      }else{
+        g.fillRect(-bodyW * 0.4, bodyH * 0.12, bodyW * 0.8, Math.max(2, height * 0.05));
+      }
     }else if(item.id === "compass"){
       const radius = Math.min(width, height) * 0.42;
       g.fillStyle(0x2a2720, 0.9);
