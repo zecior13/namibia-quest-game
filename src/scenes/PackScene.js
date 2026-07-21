@@ -10,9 +10,9 @@ const ITEMS = [
   { id:"cooler", name:"Lodówka", dims:[2,3], crop:[627,836,627,418], tint:0x4a8a89 },
   { id:"compass", name:"Kompas", dims:[1,1], sourceKey:"packCompass", crop:[0,0,627,1254], tint:0x9b7732 },
   { id:"rope", name:"Lina", dims:[1,2], custom:true, tint:0xa58452 },
-  { id:"foodcrate", name:"Skrzynia z prowiantem", dims:[3,1], sourceKey:"packNewGear", crop:[0,0,418,1254], tint:0xb88a4b },
-  { id:"extinguisher", name:"Gaśnica", dims:[2,1], sourceKey:"packNewGear", crop:[418,0,418,1254], tint:0xb43b2f },
-  { id:"gasstove", name:"Butla z palnikiem", dims:[2,1], sourceKey:"packNewGear", crop:[836,0,418,1254], tint:0x277b82 }
+  { id:"foodcrate", name:"Skrzynia z prowiantem", dims:[3,1], sourceKey:"packNewGear", crop:[0,0,724,724], tint:0xb88a4b },
+  { id:"extinguisher", name:"Gaśnica", dims:[2,1], sourceKey:"packNewGear", crop:[724,0,724,724], tint:0xb43b2f },
+  { id:"gasstove", name:"Butla z palnikiem", dims:[2,1], sourceKey:"packNewGear", crop:[1448,0,724,724], tint:0x277b82 }
 ];
 
 export class PackScene extends BaseScene {
@@ -399,8 +399,14 @@ export class PackScene extends BaseScene {
   createItemVisual(item, width, height, x, y, rotation){
     if(!["compass", "rope"].includes(item.id)){
       if(["foodcrate", "extinguisher", "gasstove"].includes(item.id)){
+        const texture = this.textures.get(`pack-${item.id}`);
+        const aspect = texture.width / texture.height;
+        const maxWidth = width * 0.94;
+        const maxHeight = height * 0.94;
+        const imageWidth = Math.min(maxWidth, maxHeight * aspect);
+        const imageHeight = imageWidth / aspect;
         const image = this.add.image(x, y, `pack-${item.id}`)
-          .setDisplaySize(width * 0.9, height * 0.9)
+          .setDisplaySize(imageWidth, imageHeight)
           .setRotation(rotation ? Math.PI / 2 : 0);
         return image;
       }
