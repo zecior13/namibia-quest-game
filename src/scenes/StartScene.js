@@ -7,7 +7,8 @@ export class StartScene extends BaseScene {
   }
 
   create(){
-    this.sceneImage = this.addCoverImage("startScene");
+    this.addCoverImage("startPlate");
+    this.addVehicleLayer();
     this.addTitleTreatment();
     this.addAmbientMotion();
     this.addStartControls();
@@ -41,17 +42,6 @@ export class StartScene extends BaseScene {
   }
 
   addAmbientMotion(){
-    this.tweens.add({
-      targets: this.sceneImage,
-      y: this.H / 2 - 2,
-      duration: 115,
-      yoyo: true,
-      repeat: -1,
-      ease: "Quad.easeOut",
-      hold: 70,
-      repeatDelay: 90
-    });
-
     const dust = this.add.graphics();
     dust.fillStyle(0xe8c58b, 0.42);
     const dustMotes = [
@@ -93,6 +83,22 @@ export class StartScene extends BaseScene {
       yoyo: true,
       ease: "Sine.easeInOut"
     });
+  }
+
+  addVehicleLayer(){
+    const vehicle = this.add.image(this.W * 0.33, this.H * 0.65, "startVehicleAlpha");
+    vehicle.setDisplaySize(this.W * 0.90, this.W * 0.90 * 1.5);
+    this.tweens.add({
+      targets: vehicle,
+      y: vehicle.y - 2.5,
+      duration: 120,
+      yoyo: true,
+      repeat: -1,
+      ease: "Quad.easeOut",
+      hold: 65,
+      repeatDelay: 95
+    });
+    this.vehicle = vehicle;
   }
 
   addStartControls(){
