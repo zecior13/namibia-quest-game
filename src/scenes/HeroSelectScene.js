@@ -97,11 +97,12 @@ export class HeroSelectScene extends BaseScene {
 
     const portrait = this.add.image(w / 2, h / 2, `heroPortrait-${hero.id}`);
     portrait.setDisplaySize(w, h);
-    group.add([portrait, frame]);
+    const hitArea = this.add.rectangle(w / 2, h / 2, w, h, 0xffffff, 0);
+    hitArea.setInteractive({ useHandCursor: true });
+    hitArea.on("pointerdown", () => this.selectHero(index));
+    group.add([portrait, frame, hitArea]);
     group.setSize(w, h);
-    group.setInteractive(new Phaser.Geom.Rectangle(0, 0, w, h), Phaser.Geom.Rectangle.Contains);
-    group.on("pointerdown", () => this.selectHero(index));
-    return { group, frame, portrait };
+    return { group, frame, portrait, hitArea };
   }
 
   selectHero(index){
@@ -138,11 +139,11 @@ export class HeroSelectScene extends BaseScene {
       fontFamily: "Georgia", fontSize: "14px", fontStyle: "bold", color: "#f4d79b",
       wordWrap: { width: this.W * 0.34 }, shadow: { offsetY: 2, color: "#05080b", blur: 4, fill: true }
     }));
-    this.selectedLayer.add(this.add.text(this.W * 0.045, this.H * 0.47, hero.role.toUpperCase(), {
+    this.selectedLayer.add(this.add.text(this.W * 0.045, this.H * 0.455, hero.role.toUpperCase(), {
       fontFamily: "Georgia", fontSize: "10px", fontStyle: "bold", color: "#e0af58", letterSpacing: 1,
       wordWrap: { width: this.W * 0.34 }
     }));
-    this.selectedLayer.add(this.add.text(this.W * 0.045, this.H * 0.53, hero.note, {
+    this.selectedLayer.add(this.add.text(this.W * 0.045, this.H * 0.495, hero.note, {
       fontFamily: "Georgia", fontSize: "11px", color: "#f3e2bc", lineSpacing: 1,
       wordWrap: { width: this.W * 0.34 }, shadow: { offsetY: 2, color: "#05080b", blur: 4, fill: true }
     }));
@@ -150,7 +151,7 @@ export class HeroSelectScene extends BaseScene {
     const stats = Object.keys(STAT_LABELS);
     stats.forEach((stat, index) => {
       const statX = this.W * 0.045 + (index % 2) * (this.W * 0.18);
-      const statY = this.H * 0.65 + Math.floor(index / 2) * 20;
+      const statY = this.H * 0.60 + Math.floor(index / 2) * 18;
       this.selectedLayer.add(this.add.text(statX, statY, `${STAT_LABELS[stat].toUpperCase()} ${hero.stats[stat]}`, {
         fontFamily: "Georgia", fontSize: "11px", fontStyle: "bold", color: "#f0d397"
       }));
