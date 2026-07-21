@@ -1,38 +1,34 @@
 import { BaseScene } from "./BaseScene.js";
 
-const CELL = 42;
-const GRID = { x: 48, y: 365, cols: 7, rows: 5 };
-
+const VOLUME = { width:6, depth:7, height:3 };
 const ITEMS = [
-  { id:"tent", name:"Namiot", w:3, h:1, crop:[0,0,627,418], tint:0xb28b5b },
-  { id:"water", name:"Kanister wody", w:2, h:2, crop:[627,0,627,418], tint:0x3e7593 },
-  { id:"medkit", name:"Apteczka", w:2, h:1, crop:[0,418,627,418], tint:0xb65b38 },
-  { id:"duffel", name:"Torba wyprawowa", w:3, h:2, crop:[627,418,627,418], tint:0x8b7651 },
-  { id:"tools", name:"Skrzynka narzędzi", w:4, h:1, crop:[0,836,627,418], tint:0x375866 },
-  { id:"cooler", name:"Lodówka", w:2, h:2, crop:[627,836,627,418], tint:0x4a8a89 }
+  { id:"tent", name:"Namiot", dims:[3,2,1], crop:[0,0,627,418], tint:0xb28b5b },
+  { id:"water", name:"Kanister", dims:[2,2,2], crop:[627,0,627,418], tint:0x3e7593 },
+  { id:"medkit", name:"Apteczka", dims:[2,1,1], crop:[0,418,627,418], tint:0xb65b38 },
+  { id:"duffel", name:"Torba", dims:[3,2,2], crop:[627,418,627,418], tint:0x8b7651 },
+  { id:"tools", name:"Narzędzia", dims:[4,1,1], crop:[0,836,627,418], tint:0x375866 },
+  { id:"cooler", name:"Lodówka", dims:[2,2,2], crop:[627,836,627,418], tint:0x4a8a89 }
 ];
 
 export class PackScene extends BaseScene {
   constructor(){
     super("PackScene");
-    this.placed = {};
-    this.selectedId = null;
-    this.rotation = 0;
-    this.drag = null;
+    this.placed = [];
+    this.active = null;
     this.itemTexturesReady = false;
+    this.dragState = null;
+    this.message = "Wybierz przedmiot z lewej. Dotknij go, aby obrócić. PCHNIJ wsunie go do bagażnika.";
   }
 
   create(){
-    this.placed = {};
+    this.placed = [];
+    this.active = null;
     this.buildItemTextures();
     this.drawScene();
   }
 
   buildItemTextures(){
-    if(this.itemTexturesReady){
-      return;
-    }
-
+    if(this.itemTexturesReady){ return; }
     const source = this.textures.get("packItems").getSourceImage();
     ITEMS.forEach((item)=>{
       const [sx, sy, sw, sh] = item.crop;
@@ -58,172 +54,260 @@ export class PackScene extends BaseScene {
 
   drawScene(){
     this.children.removeAll();
-    this.add.image(this.W / 2, this.H / 2, "cargoScene").setDisplaySize(this.W, this.H);
-    this.drawSceneMarks();
-    this.drawGrid();
-    this.drawPlacedItems();
-    this.drawItemRack();
-    this.drawInstructions();
+    const backdrop = this.add.image(this.W / 2, this.H / 2, "cargoScene");
+    const scale = Math.max(this.W / backdrop.width, this.H / backdrop.height);
+    backdrop.setScale(scale);
+
+    this.drawHeader();
+    this.drawTunnel();
+    this.drawPlacedObjects();
+    this.drawItemRail();
+    this.drawControls();
   }
 
-  drawSceneMarks(){
-    this.add.text(20, 18, "WINDHOEK  /  BAGAŻNIK 4x4", {
-      fontFamily:"monospace", fontSize:"14px", fontStyle:"bold", color:"#f4d49c",
-      backgroundColor:"#182a2b", padding:{ left:8, right:8, top:5, bottom:5 }
+  drawHeader(){
+    this.add.text(16, 14, "WINDHOEK  /  BAGAŻNIK 4x4", {
+      fontFamily:"monospace", fontSize:"12px", fontStyle:"bold", color:"#f4d49c",
+      backgroundColor:"#182a2b", padding:{ left:7, right:7, top:5, bottom:5 }
     });
-    this.add.text(this.W - 20, 20, `${Object.keys(this.placed).length} / ${ITEMS.length}`, {
-      fontFamily:"monospace", fontSize:"16px", fontStyle:"bold", color:"#f4d49c"
+    this.add.text(this.W - 16, 17, `${this.placed.length} / ${ITEMS.length}`, {
+      fontFamily:"monospace", fontSize:"15px", fontStyle:"bold", color:"#f4d49c"
     }).setOrigin(1, 0);
   }
 
-  drawGrid(){
+  drawTunnel(){
     const g = this.add.graphics();
-    g.fillStyle(0x111b1d, 0.25);
-    g.fillRoundedRect(GRID.x - 8, GRID.y - 8, GRID.cols * CELL + 16, GRID.rows * CELL + 16, 10);
-    for(let row = 0; row < GRID.rows; row++){
-      for(let col = 0; col < GRID.cols; col++){
-        const x = GRID.x + col * CELL;
-        const y = GRID.y + row * CELL;
-        g.lineStyle(1, 0xf1d7a5, 0.42);
-        g.strokeRect(x + 1, y + 1, CELL - 2, CELL - 2);
-        this.add.zone(x, y, CELL, CELL).setOrigin(0).setInteractive()
-          .on("pointerover", (pointer)=>this.updateDrag(pointer));
-      }
+    const front = this.project(0, 0, 0);
+    const frontRight = this.project(VOLUME.width, 0, 0);
+    const back = this.project(0, VOLUME.depth, 0);
+    const backRight = this.project(VOLUME.width, VOLUME.depth, 0);
+    g.fillStyle(0x172322, 0.16);
+    g.beginPath();
+    g.moveTo(front.x, front.y);
+    g.lineTo(frontRight.x, frontRight.y);
+    g.lineTo(backRight.x, backRight.y);
+    g.lineTo(back.x, back.y);
+    g.closePath();
+    g.fillPath();
+    g.lineStyle(2, 0xf0d49a, 0.42);
+    g.strokePath();
+
+    for(let depth = 0; depth <= VOLUME.depth; depth++){
+      const left = this.project(0, depth, 0);
+      const right = this.project(VOLUME.width, depth, 0);
+      g.lineStyle(1, 0xf0d49a, depth === 0 || depth === VOLUME.depth ? 0.55 : 0.2);
+      g.lineBetween(left.x, left.y, right.x, right.y);
     }
+    for(let col = 0; col <= VOLUME.width; col++){
+      const near = this.project(col, 0, 0);
+      const far = this.project(col, VOLUME.depth, 0);
+      g.lineStyle(1, 0xf0d49a, 0.28);
+      g.lineBetween(near.x, near.y, far.x, far.y);
+    }
+    for(let level = 1; level <= VOLUME.height; level++){
+      const left = this.project(0, 0, level);
+      const right = this.project(VOLUME.width, 0, level);
+      g.lineStyle(1, 0xf0d49a, 0.2);
+      g.lineBetween(left.x, left.y, right.x, right.y);
+    }
+    this.add.text(this.W / 2, 278, "PRZESTRZEŃ ŁADUNKOWA", {
+      fontFamily:"monospace", fontSize:"10px", fontStyle:"bold", color:"#f4d49c",
+      stroke:"#162423", strokeThickness:4
+    }).setOrigin(0.5);
   }
 
-  drawPlacedItems(){
-    ITEMS.forEach((item)=>{
-      const placement = this.placed[item.id];
-      if(!placement){ return; }
-      this.addItemSprite(item, placement.col, placement.row, placement.rot || 0, 1);
+  drawPlacedObjects(){
+    const objects = [...this.placed];
+    if(this.active){ objects.push(this.active); }
+    objects.sort((a, b)=>b.y - a.y);
+    objects.forEach((placement)=>{
+      const item = this.getItem(placement.id);
+      this.addObject(item, placement, placement === this.active ? 0.76 : 1);
     });
   }
 
-  drawItemRack(){
-    const rackY = 600;
-    this.add.text(22, rackY - 25, "PRZEDMIOTY NA PODŁODZE", {
-      fontFamily:"monospace", fontSize:"11px", fontStyle:"bold", color:"#f4d49c"
+  drawItemRail(){
+    this.add.text(12, 300, "SPRZĘT", {
+      fontFamily:"monospace", fontSize:"10px", fontStyle:"bold", color:"#f4d49c",
+      stroke:"#172423", strokeThickness:3
     });
-
     ITEMS.forEach((item, index)=>{
-      if(this.placed[item.id]){ return; }
-      const x = 24 + (index % 3) * 122;
-      const y = rackY + Math.floor(index / 3) * 82;
+      if(this.placed.some((placement)=>placement.id === item.id) || this.active?.id === item.id){ return; }
+      const y = 326 + index * 62;
       const frame = this.add.graphics();
-      frame.fillStyle(0x1a2929, 0.78);
-      frame.fillRoundedRect(x, y, 108, 68, 8);
-      frame.lineStyle(1, item.tint, 0.85);
-      frame.strokeRoundedRect(x, y, 108, 68, 8);
-      const image = this.add.image(x + 54, y + 32, `pack-${item.id}`);
-      image.setDisplaySize(92, 56);
-      image.setInteractive({ useHandCursor:true });
-      image.on("pointerdown", (pointer)=>{
-        this.pickItem(item.id);
-        this.startDrag(pointer);
-      });
-      this.add.text(x + 6, y + 52, item.name.toUpperCase(), {
-        fontFamily:"monospace", fontSize:"8px", fontStyle:"bold", color:"#f8e4ba",
-        stroke:"#152526", strokeThickness:3
+      frame.fillStyle(0x182a2b, 0.86);
+      frame.fillRoundedRect(8, y, 72, 50, 7);
+      frame.lineStyle(1, item.tint, 0.9);
+      frame.strokeRoundedRect(8, y, 72, 50, 7);
+      const image = this.add.image(44, y + 24, `pack-${item.id}`).setDisplaySize(64, 40);
+      image.setInteractive({ useHandCursor:true }).on("pointerdown", ()=>{
+        this.active = { id:item.id, x:Math.floor((VOLUME.width - item.dims[0]) / 2), y:0, z:0, rot:0 };
+        this.message = `${item.name.toUpperCase()} PRZY WEJŚCIU. Przesuń lewo/prawo, dotknij aby obrócić.`;
+        this.drawScene();
       });
     });
   }
 
-  drawInstructions(){
-    const allPacked = Object.keys(this.placed).length === ITEMS.length;
-    const message = this.selectedId
-      ? `PRZENIEŚ: ${this.getItem(this.selectedId).name.toUpperCase()}  ·  OBRÓĆ: dotknij ponownie`
-      : allPacked ? "BAGAŻNIK ZAMKNIĘTY. WYPRAWA MOŻE RUSZYĆ." : "DOTKNIJ PRZEDMIOTU, PRZECIĄGNIJ GO NA SIATKĘ, OBRÓĆ W RAZIE POTRZEBY.";
-    this.add.text(this.W / 2, this.H - 22, message, {
-      fontFamily:"monospace", fontSize:"10px", fontStyle:"bold", color:"#f8e4ba",
-      align:"center", wordWrap:{ width:this.W - 28 }
-    }).setOrigin(0.5, 1);
-
-    if(allPacked){
-      this.add.text(this.W - 18, this.H - 58, "RUSZAJ →", {
-        fontFamily:"monospace", fontSize:"16px", fontStyle:"bold", color:"#e5bd69"
-      }).setOrigin(1, 1).setInteractive({ useHandCursor:true }).on("pointerdown", ()=>{
+  drawControls(){
+    this.add.text(92, 742, this.message, {
+      fontFamily:"monospace", fontSize:"9px", fontStyle:"bold", color:"#f8e4ba",
+      wordWrap:{ width:this.W - 106 }, lineSpacing:2,
+      stroke:"#172423", strokeThickness:3
+    });
+    this.add.text(102, 807, "↺  OBRÓĆ", {
+      fontFamily:"monospace", fontSize:"13px", fontStyle:"bold", color:"#f4d49c",
+      backgroundColor:"#182a2b", padding:{ left:9, right:9, top:6, bottom:6 }
+    }).setInteractive({ useHandCursor:true }).on("pointerdown", ()=>this.rotateActive());
+    this.add.text(252, 807, "PCHNIJ  ▶", {
+      fontFamily:"monospace", fontSize:"13px", fontStyle:"bold", color:"#f4d49c",
+      backgroundColor:this.active ? "#345c50" : "#384343", padding:{ left:9, right:9, top:6, bottom:6 }
+    }).setInteractive({ useHandCursor:true }).on("pointerdown", ()=>this.pushActive());
+    if(this.placed.length === ITEMS.length){
+      this.add.text(this.W - 14, 776, "RUSZAJ →", {
+        fontFamily:"monospace", fontSize:"14px", fontStyle:"bold", color:"#f1c873"
+      }).setOrigin(1, 0).setInteractive({ useHandCursor:true }).on("pointerdown", ()=>{
         this.saveGamePatch({ packComplete:true, windhoekDone:true, progress:"solitaire" });
         this.scene.start("MapScene");
       });
     }
   }
 
-  pickItem(id){
-    if(this.placed[id]){
-      const item = this.getItem(id);
-      item._rotation = ((item._rotation || 0) + 1) % 2;
-      delete this.placed[id];
-      this.selectedId = id;
-      this.rotation = item._rotation;
+  rotateActive(){
+    if(!this.active){
+      this.message = "Najpierw wybierz przedmiot z lewej.";
       this.drawScene();
       return;
     }
-    this.selectedId = id;
-    this.rotation = this.getItem(id)._rotation || 0;
+    this.active.rot = (this.active.rot + 1) % 6;
+    this.message = "OBRÓT ZMIENIONY. Gdy pasuje do tunelu, wciśnij PCHNIJ.";
     this.drawScene();
   }
 
-  startDrag(pointer){
-    if(!this.selectedId){ return; }
-    this.drag = { id:this.selectedId, col:0, row:0 };
-    this.updateDrag(pointer);
-    this.input.on("pointermove", this.updateDrag, this);
-    this.input.once("pointerup", this.finishDrag, this);
-  }
-
-  updateDrag(pointer){
-    if(!this.drag){ return; }
-    const item = this.getItem(this.drag.id);
-    const width = this.rotation ? item.h : item.w;
-    const height = this.rotation ? item.w : item.h;
-    this.drag.col = Phaser.Math.Clamp(Math.floor((pointer.x - GRID.x) / CELL), 0, GRID.cols - width);
-    this.drag.row = Phaser.Math.Clamp(Math.floor((pointer.y - GRID.y) / CELL), 0, GRID.rows - height);
-    this.drawScene();
-    this.addItemSprite(item, this.drag.col, this.drag.row, this.rotation, 0.55);
-  }
-
-  finishDrag(){
-    this.input.off("pointermove", this.updateDrag, this);
-    if(!this.drag){ return; }
-    const item = this.getItem(this.drag.id);
-    if(this.canPlace(item, this.drag.col, this.drag.row, this.rotation)){
-      this.placed[item.id] = { col:this.drag.col, row:this.drag.row, rot:this.rotation };
-      this.selectedId = null;
-      this.drag = null;
+  pushActive(){
+    if(!this.active){
+      this.message = "Nie ma przedmiotu przy wejściu do tunelu.";
       this.drawScene();
-    }else{
-      this.drag = null;
-      this.selectedId = item.id;
+      return;
+    }
+    const item = this.getItem(this.active.id);
+    const dims = this.getDims(item, this.active.rot);
+    const x = Phaser.Math.Clamp(this.active.x, 0, VOLUME.width - dims[0]);
+    const placement = this.findRestingPlace(item, x, dims);
+    if(!placement){
+      this.message = "Ta pozycja jest zablokowana. Przesuń przedmiot albo obróć go.";
+      this.drawScene();
+      return;
+    }
+    this.placed.push({ id:item.id, x:placement.x, y:placement.y, z:placement.z, rot:this.active.rot });
+    this.active = null;
+    this.message = "Przedmiot wsunięty. Wybierz następny i pilnuj pustych szczelin.";
+    this.drawScene();
+  }
+
+  findRestingPlace(item, x, dims){
+    for(let y = VOLUME.depth - dims[1]; y >= 0; y--){
+      for(let z = 0; z <= VOLUME.height - dims[2]; z++){
+        const candidate = { id:item.id, x, y, z, rot:this.active.rot };
+        if(this.canOccupy(candidate, dims) && this.hasSupport(candidate, dims)){
+          return { x, y, z };
+        }
+      }
+    }
+    return null;
+  }
+
+  hasSupport(candidate, dims){
+    if(candidate.z === 0){ return true; }
+    for(let x = candidate.x; x < candidate.x + dims[0]; x++){
+      for(let y = candidate.y; y < candidate.y + dims[1]; y++){
+        if(!this.isOccupied(x, y, candidate.z - 1)){ return false; }
+      }
+    }
+    return true;
+  }
+
+  canOccupy(candidate, dims){
+    if(candidate.x < 0 || candidate.y < 0 || candidate.z < 0 ||
+      candidate.x + dims[0] > VOLUME.width || candidate.y + dims[1] > VOLUME.depth ||
+      candidate.z + dims[2] > VOLUME.height){ return false; }
+    for(let x = candidate.x; x < candidate.x + dims[0]; x++){
+      for(let y = candidate.y; y < candidate.y + dims[1]; y++){
+        for(let z = candidate.z; z < candidate.z + dims[2]; z++){
+          if(this.isOccupied(x, y, z)){ return false; }
+        }
+      }
+    }
+    return true;
+  }
+
+  isOccupied(x, y, z){
+    return this.placed.some((placement)=>{
+      const dims = this.getDims(this.getItem(placement.id), placement.rot);
+      return x >= placement.x && x < placement.x + dims[0] &&
+        y >= placement.y && y < placement.y + dims[1] &&
+        z >= placement.z && z < placement.z + dims[2];
+    });
+  }
+
+  addObject(item, placement, alpha){
+    const dims = this.getDims(item, placement.rot);
+    const center = this.project(placement.x + dims[0] / 2, placement.y + dims[1] / 2, placement.z);
+    const far = this.project(placement.x + dims[0], placement.y + dims[1], placement.z);
+    const near = this.project(placement.x, placement.y, placement.z + dims[2]);
+    const width = Math.max(26, Math.abs(far.x - center.x) * 1.8);
+    const height = Math.max(24, Math.abs(near.y - center.y) + Math.abs(far.y - center.y) * 0.8);
+    const image = this.add.image(center.x, center.y - height * 0.35, `pack-${item.id}`);
+    image.setDisplaySize(width, height);
+    image.setAlpha(alpha);
+    image.setAngle((placement.rot % 2) * 90);
+    if(placement === this.active){
+      image.setInteractive({ useHandCursor:true });
+      image.on("pointerdown", (pointer)=>this.beginObjectDrag(pointer));
+    }
+  }
+
+  beginObjectDrag(pointer){
+    if(!this.active){ return; }
+    this.dragState = { startX:pointer.x, startY:pointer.y, lastX:pointer.x };
+    this.input.on("pointermove", this.dragObject, this);
+    this.input.once("pointerup", this.endObjectDrag, this);
+  }
+
+  dragObject(pointer){
+    if(!this.dragState || !this.active){ return; }
+    const delta = pointer.x - this.dragState.lastX;
+    this.dragState.lastX = pointer.x;
+    const item = this.getItem(this.active.id);
+    const dims = this.getDims(item, this.active.rot);
+    if(Math.abs(delta) > 1){
+      this.active.x = Phaser.Math.Clamp(this.active.x + Math.round(delta / 42), 0, VOLUME.width - dims[0]);
       this.drawScene();
     }
   }
 
-  canPlace(item, col, row, rot){
-    const width = rot ? item.h : item.w;
-    const height = rot ? item.w : item.h;
-    if(col < 0 || row < 0 || col + width > GRID.cols || row + height > GRID.rows){ return false; }
-    return !Object.entries(this.placed).some(([id, placement])=>{
-      const other = this.getItem(id);
-      const otherWidth = placement.rot ? other.h : other.w;
-      const otherHeight = placement.rot ? other.w : other.h;
-      return col < placement.col + otherWidth && col + width > placement.col &&
-        row < placement.row + otherHeight && row + height > placement.row;
-    });
+  endObjectDrag(pointer){
+    this.input.off("pointermove", this.dragObject, this);
+    if(!this.dragState){ return; }
+    const moved = Math.abs(pointer.x - this.dragState.startX) + Math.abs(pointer.y - this.dragState.startY);
+    this.dragState = null;
+    if(moved < 10){ this.rotateActive(); }
   }
 
-  addItemSprite(item, col, row, rot, alpha){
-    const width = rot ? item.h : item.w;
-    const height = rot ? item.w : item.h;
-    const image = this.add.image(
-      GRID.x + (col + width / 2) * CELL,
-      GRID.y + (row + height / 2) * CELL,
-      `pack-${item.id}`
-    );
-    image.setDisplaySize(width * CELL - 5, height * CELL - 5);
-    image.setAlpha(alpha);
-    image.setAngle(rot ? 90 : 0);
-    return image;
+  getDims(item, rotation){
+    const [w, d, h] = item.dims;
+    const variants = [[w,d,h],[d,w,h],[w,h,d],[h,w,d],[d,h,w],[h,d,w]];
+    return variants[rotation % variants.length];
+  }
+
+  project(x, depth, z){
+    const t = depth / VOLUME.depth;
+    const center = this.W * 0.58;
+    const nearHalf = this.W * 0.37;
+    const farHalf = this.W * 0.18;
+    const half = nearHalf + (farHalf - nearHalf) * t;
+    const screenX = center + ((x / VOLUME.width) - 0.5) * half * 2;
+    const screenY = 700 - t * 360 - z * (48 - t * 14);
+    return { x:screenX, y:screenY };
   }
 
   getItem(id){
