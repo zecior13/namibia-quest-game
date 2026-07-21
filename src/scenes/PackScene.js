@@ -238,9 +238,13 @@ export class PackScene extends BaseScene {
     this.command(92, 774, "↶ COFNIJ", ()=>this.undoLast());
     this.command(224, 774, "RESET", ()=>this.resetPacking());
     if(this.placed.length === ITEMS.length){
-      this.add.text(this.W - 12, 774, "RUSZAJ →", {
+      const continueText = this.add.text(this.W - 12, 774, "RUSZAJ →", {
         fontFamily:"monospace", fontSize:"13px", fontStyle:"bold", color:"#f1c873"
-      }).setOrigin(1, 0).setInteractive({ useHandCursor:true }).on("pointerdown", ()=>{
+      }).setOrigin(1, 0);
+      this.add.zone(this.W - 12 - continueText.width - 12, 768, continueText.width + 24, continueText.height + 16)
+        .setOrigin(0)
+        .setInteractive({ useHandCursor:true })
+        .on("pointerdown", ()=>{
         this.saveGamePatch({ packComplete:true, windhoekDone:true, progress:"solitaire" });
         this.scene.start("MapScene");
       });
@@ -248,10 +252,15 @@ export class PackScene extends BaseScene {
   }
 
   command(x, y, label, callback){
-    this.add.text(x, y, label, {
+    const button = this.add.text(x, y, label, {
       fontFamily:"monospace", fontSize:"11px", fontStyle:"bold", color:"#f4d49c",
       backgroundColor:"#182a2b", padding:{ left:7, right:7, top:6, bottom:6 }
-    }).setInteractive({ useHandCursor:true }).on("pointerdown", callback);
+    });
+    // Keep the visual button unchanged, but give touch users a forgiving target.
+    this.add.zone(x - 8, y - 6, Math.max(38, button.width + 16), button.height + 12)
+      .setOrigin(0)
+      .setInteractive({ useHandCursor:true })
+      .on("pointerdown", callback);
   }
 
   selectItem(id){
