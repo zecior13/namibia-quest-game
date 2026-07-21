@@ -69,9 +69,8 @@ export class StartScene extends BaseScene {
       });
     });
 
-    const bird = this.add.image(this.W * 0.82, this.H * 0.20, "startScene")
-      .setCrop(770, 140, 100, 85)
-      .setDisplaySize(50, 43);
+    const bird = this.add.image(this.W * 0.82, this.H * 0.20, "startBirdAlpha")
+      .setDisplaySize(52, 47);
     this.tweens.add({
       targets: bird,
       x: this.W * 0.25,
@@ -177,11 +176,10 @@ export class StartScene extends BaseScene {
     }
     group.add(g);
     group.setSize(34, 34);
-    group.setInteractive(
-      new Phaser.Geom.Rectangle(-17, -17, 34, 34),
-      Phaser.Geom.Rectangle.Contains,
-      { useHandCursor: true }
-    ).on("pointerdown", () => {
+    const zone = this.add.zone(x - 17, y - 17, 34, 34)
+      .setOrigin(0)
+      .setInteractive({ useHandCursor: true });
+    zone.on("pointerdown", () => {
       this.playUiSound();
       this.toggleSettings();
     });

@@ -25,6 +25,7 @@ export class BootScene extends Phaser.Scene {
 
   create(){
     this.prepareTransparentVehicle();
+    this.prepareBirdTexture();
     this.scene.start("StartScene");
   }
 
@@ -46,7 +47,7 @@ export class BootScene extends Phaser.Scene {
       const red = pixels[offset];
       const green = pixels[offset + 1];
       const blue = pixels[offset + 2];
-      return red > 210 && green > 210 && blue > 210 && Math.max(red, green, blue) - Math.min(red, green, blue) < 24;
+      return red > 165 && green > 165 && blue > 165 && Math.max(red, green, blue) - Math.min(red, green, blue) < 35;
     };
 
     for(let x = 0; x < canvas.width; x++){
@@ -72,5 +73,29 @@ export class BootScene extends Phaser.Scene {
 
     context.putImageData(image, 0, 0);
     this.textures.addCanvas("startVehicleAlpha", canvas);
+  }
+
+  prepareBirdTexture(){
+    const source = this.textures.get("startScene").getSourceImage();
+    const cropX = 770;
+    const cropY = 135;
+    const width = 105;
+    const height = 95;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    context.drawImage(source, cropX, cropY, width, height, 0, 0, width, height);
+    const image = context.getImageData(0, 0, width, height);
+    const pixels = image.data;
+    for(let index = 0; index < pixels.length; index += 4){
+      const brightness = (pixels[index] + pixels[index + 1] + pixels[index + 2]) / 3;
+      const contrast = Math.max(pixels[index], pixels[index + 1], pixels[index + 2]) - Math.min(pixels[index], pixels[index + 1], pixels[index + 2]);
+      if(brightness > 105 || contrast < 12){
+        pixels[index + 3] = 0;
+      }
+    }
+    context.putImageData(image, 0, 0);
+    this.textures.addCanvas("startBirdAlpha", canvas);
   }
 }
