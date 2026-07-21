@@ -10,9 +10,9 @@ const ITEMS = [
   { id:"cooler", name:"Lodówka", dims:[2,3], crop:[627,836,627,418], tint:0x4a8a89 },
   { id:"compass", name:"Kompas", dims:[1,1], sourceKey:"packCompass", crop:[0,0,627,1254], tint:0x9b7732 },
   { id:"rope", name:"Lina", dims:[1,2], custom:true, tint:0xa58452 },
-  { id:"foodcrate", name:"Skrzynia z prowiantem", dims:[3,1], sourceKey:"packNewGear", crop:[0,0,591,887], tint:0xb88a4b },
-  { id:"extinguisher", name:"Gaśnica", dims:[2,1], sourceKey:"packNewGear", crop:[591,0,591,887], tint:0xb43b2f },
-  { id:"triangle", name:"Trójkąt ostrzegawczy", dims:[2,1], sourceKey:"packNewGear", crop:[1182,0,592,887], tint:0xb43b2f }
+  { id:"foodcrate", name:"Skrzynia z prowiantem", dims:[3,1], sourceKey:"packFoodCrate", crop:[0,0,1774,887], tint:0xb88a4b },
+  { id:"extinguisher", name:"Gaśnica", dims:[2,1], sourceKey:"packExtinguisher", crop:[0,0,1254,1254], tint:0xb43b2f },
+  { id:"triangle", name:"Trójkąt ostrzegawczy", dims:[2,1], sourceKey:"packWarningTriangle", crop:[0,0,1254,1254], tint:0xb43b2f }
 ];
 
 export class PackScene extends BaseScene {
@@ -54,7 +54,7 @@ export class PackScene extends BaseScene {
         if(green > red * 1.35 && green > blue * 1.25){ pixels.data[i + 3] = 0; }
       }
       context.putImageData(pixels, 0, 0);
-      if(item.sourceKey === "packNewGear"){
+      if(["foodcrate", "extinguisher", "triangle"].includes(item.id)){
         let minX = sw;
         let minY = sh;
         let maxX = -1;
@@ -211,7 +211,7 @@ export class PackScene extends BaseScene {
       frame.fillRoundedRect(x, y, 112, 36, 6);
       frame.lineStyle(1, item.tint, 0.9);
       frame.strokeRoundedRect(x, y, 112, 36, 6);
-      const image = this.createItemVisual(item, 96, 32, x + 56, y + 18, 0);
+      const image = this.createItemVisual(item, 96, 32, x + 56, y + 18, 0, true);
       image.setInteractive({ useHandCursor:true }).on("pointerdown", ()=>this.selectItem(item.id));
     });
   }
@@ -396,16 +396,18 @@ export class PackScene extends BaseScene {
     this.drawScene();
   }
 
-  createItemVisual(item, width, height, x, y, rotation){
+  createItemVisual(item, width, height, x, y, rotation, railPreview = false){
     if(!["compass", "rope"].includes(item.id)){
       if(["foodcrate", "extinguisher", "triangle"].includes(item.id)){
         const texture = this.textures.get(`pack-${item.id}`);
         const aspect = texture.width / texture.height;
-        const imageWidth = width * 0.9;
+        const maxWidth = railPreview ? width * 0.82 : width * 0.9;
+        const maxHeight = railPreview ? height * 0.82 : Infinity;
+        const imageWidth = railPreview ? Math.min(maxWidth, maxHeight * aspect) : maxWidth;
         const imageHeight = imageWidth / aspect;
         const image = this.add.image(x, y, `pack-${item.id}`)
           .setDisplaySize(rotation ? imageHeight : imageWidth, rotation ? imageWidth : imageHeight)
-          .setPosition(x, y - Math.max(0, (imageHeight - height) * 0.5))
+          .setPosition(x, railPreview ? y : y - Math.max(0, (imageHeight - height) * 0.5))
           .setRotation(rotation ? Math.PI / 2 : 0);
         return image;
       }
