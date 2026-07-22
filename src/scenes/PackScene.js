@@ -233,7 +233,7 @@ export class PackScene extends BaseScene {
       fontFamily:"monospace", fontSize:"9px", fontStyle:"bold", color:"#f8e4ba",
       wordWrap:{ width:this.W - 36 }, lineSpacing:2, stroke:"#172423", strokeThickness:3
     });
-    this.command(14, firstRowY, 70, "MAPA", ()=>this.scene.start("MapScene"));
+    this.command(14, firstRowY, 70, "WRÓĆ", ()=>this.scene.start("WindhoekScene"));
     this.command(90, firstRowY, 92, "COFNIJ", ()=>this.undoLast());
     this.command(188, firstRowY, 72, "RESET", ()=>this.resetPacking());
     this.command(14, secondRowY, 42, "◀", ()=>this.nudgeActive(-1));
@@ -242,8 +242,8 @@ export class PackScene extends BaseScene {
     this.command(232, secondRowY, this.W - 246, "PCHNIJ", ()=>this.pushActive());
     if(this.placed.length === ITEMS.length){
       this.command(266, firstRowY, this.W - 280, "RUSZAJ", ()=>{
-        this.saveGamePatch({ packComplete:true, windhoekDone:true, progress:"solitaire" });
-        this.scene.start("MapScene");
+        this.saveGamePatch({ packComplete:true });
+        this.scene.start("WindhoekScene");
       });
     }
   }

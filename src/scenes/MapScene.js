@@ -248,10 +248,10 @@ export class MapScene extends BaseScene {
     const text = this.add.text(width / 2, height / 2, label, {
       fontFamily: "Georgia", fontSize: "9px", fontStyle: "bold", color: "#ead09a", letterSpacing: 1
     }).setOrigin(0.5);
-    group.add([plate, text]);
-    group.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
-    group.input.cursor = "pointer";
-    group.on("pointerdown", callback);
+    const hitArea = this.add.rectangle(width / 2, height / 2, width, height, 0xffffff, 0.001)
+      .setInteractive({ useHandCursor: true });
+    group.add([plate, text, hitArea]);
+    hitArea.on("pointerdown", callback);
     return group;
   }
 
@@ -346,11 +346,15 @@ export class MapScene extends BaseScene {
     }
     this.closePopup();
     this.popupType = "gear";
-    const card = this.createPopup(this.W - 224, 63, 206, 132);
+    const card = this.createPopup(this.W - 224, 63, 206, 160);
+    const selectedGear = (this.getSave().gear || []).length;
     card.add(this.add.text(14, 12, "EKWIPUNEK", { fontFamily: "Georgia", fontSize: "13px", fontStyle: "bold", color: "#f1d79e", letterSpacing: 1 }));
-    card.add(this.add.text(14, 44, "Samochód czeka na spakowanie.\nSprzęt wybierzesz w Windhoek.", {
+    card.add(this.add.text(14, 42, `Wybrane elementy: ${selectedGear} / 5\nSprzęt przygotujesz w Windhoek.`, {
       fontFamily: "Georgia", fontSize: "10px", color: "#dac8a5", lineSpacing: 4, wordWrap: { width: 176 }
     }));
+    if(this.currentIndex === 0){
+      this.addPopupAction(card, 14, 116, "PRZEJDŹ DO SPRZĘTU", () => this.scene.start("GearScene"));
+    }
   }
 
   toggleSettingsCard(){

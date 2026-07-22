@@ -52,15 +52,15 @@ export class BaseScene extends Phaser.Scene {
       align: "center"
     }).setOrigin(0.5);
 
-    group.add([bg, text]);
-    group.setInteractive(new Phaser.Geom.Rectangle(0, 0, w, h), Phaser.Geom.Rectangle.Contains);
-    group.input.cursor = "pointer";
-    group.on("pointerdown", () => {
+    const hitArea = this.add.rectangle(w / 2, h / 2, w, h, 0xffffff, 0.001)
+      .setInteractive({ useHandCursor: true });
+    group.add([bg, text, hitArea]);
+    hitArea.on("pointerdown", () => {
       group.setScale(0.98);
       callback();
     });
-    group.on("pointerup", () => group.setScale(1));
-    group.on("pointerout", () => group.setScale(1));
+    hitArea.on("pointerup", () => group.setScale(1));
+    hitArea.on("pointerout", () => group.setScale(1));
     return group;
   }
 

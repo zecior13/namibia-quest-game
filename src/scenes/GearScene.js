@@ -28,9 +28,10 @@ export class GearScene extends BaseScene {
     this.addTitle(22, 24, "WINDHOEK · EKWIPUNEK", "Co zabierasz?", "Masz 5 miejsc. To jest pierwsza decyzja RPG: sprzęt pomaga, ale obciąża plan.");
     this.drawGear();
     this.addButton(22, 772, 166, 50, "Wróć", () => this.scene.start("WindhoekScene"), { secondary:true });
-    this.addButton(202, 772, 166, 50, "Pakuj 4x4", () => {
-      this.saveGamePatch({ gear:this.selected });
-      this.scene.start("PackScene");
+    this.addButton(202, 772, 166, 50, this.selected.length === 5 ? "Zatwierdź" : "Wybierz 5", () => {
+      if(this.selected.length !== 5) return;
+      this.saveGamePatch({ gear:this.selected, gearComplete:true, packComplete:false });
+      this.scene.start("WindhoekScene");
     });
   }
 

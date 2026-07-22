@@ -34,6 +34,7 @@ export class HeroSelectScene extends BaseScene {
 
   create(){
     this.hero = HEROES[this.heroIndex];
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.closeNameEntry());
     this.addCoverImage("heroGarageSelect");
     this.drawSceneTreatment();
     this.addHeader();
@@ -173,17 +174,78 @@ export class HeroSelectScene extends BaseScene {
       fontFamily: "Georgia", fontSize: "8px", fontStyle: "bold", color: "#d2ad69", letterSpacing: 0.5
     });
     this.addRetroButton(this.W * 0.60, this.H - 65, this.W * 0.34, 38, "WYBIERAM", () => {
-      const name = window.prompt("Jak ma nazywać się bohater?", this.hero.name.split(" ")[0]);
-      if(name === null) return;
+      this.openNameEntry();
+    });
+  }
+
+  openNameEntry(){
+    if(this.nameEntry) return;
+    const defaultName = this.hero.name.split(" ")[0];
+    const overlay = document.createElement("div");
+    overlay.className = "hero-name-overlay";
+
+    const panel = document.createElement("section");
+    panel.className = "hero-name-panel";
+    panel.setAttribute("aria-label", "Nadaj imię bohaterowi");
+
+    const kicker = document.createElement("div");
+    kicker.className = "hero-name-kicker";
+    kicker.textContent = "KARTA WYPRAWY";
+    const title = document.createElement("h2");
+    title.textContent = "Jak ma nazywać się bohater?";
+    const input = document.createElement("input");
+    input.className = "hero-name-input";
+    input.type = "text";
+    input.maxLength = 18;
+    input.value = defaultName;
+    input.autocomplete = "off";
+    input.spellcheck = false;
+
+    const actions = document.createElement("div");
+    actions.className = "hero-name-actions";
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "hero-name-button secondary";
+    cancel.textContent = "ANULUJ";
+    const confirm = document.createElement("button");
+    confirm.type = "button";
+    confirm.className = "hero-name-button primary";
+    confirm.textContent = "RUSZAJ";
+
+    const submit = () => {
+      const name = input.value.trim() || defaultName;
       this.saveGamePatch({
         heroId: this.hero.id,
-        heroName: name.trim() || this.hero.name.split(" ")[0],
+        heroName: name,
         heroArchetype: this.hero.name,
         stats: this.hero.stats,
         progress: "windhoek"
       });
+      this.closeNameEntry();
       this.scene.start("MapScene");
+    };
+    cancel.addEventListener("click", () => this.closeNameEntry());
+    confirm.addEventListener("click", submit);
+    input.addEventListener("keydown", (event) => {
+      if(event.key === "Enter") submit();
+      if(event.key === "Escape") this.closeNameEntry();
     });
+
+    actions.append(cancel, confirm);
+    panel.append(kicker, title, input, actions);
+    overlay.append(panel);
+    document.body.append(overlay);
+    this.nameEntry = overlay;
+    requestAnimationFrame(() => {
+      input.focus();
+      input.select();
+    });
+  }
+
+  closeNameEntry(){
+    if(!this.nameEntry) return;
+    this.nameEntry.remove();
+    this.nameEntry = null;
   }
 
   addRetroButton(x, y, width, height, label, callback){
@@ -199,11 +261,11 @@ export class HeroSelectScene extends BaseScene {
     const text = this.add.text(width / 2, height / 2, label, {
       fontFamily: "Georgia", fontSize: "13px", fontStyle: "bold", color: "#fff0c2", letterSpacing: 1
     }).setOrigin(0.5);
-    group.add([shadow, plate, text]);
-    group.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
-    group.input.cursor = "pointer";
-    group.on("pointerdown", () => { group.setScale(0.97); callback(); });
-    group.on("pointerup", () => group.setScale(1));
-    group.on("pointerout", () => group.setScale(1));
+    const hitArea = this.add.rectangle(width / 2, height / 2, width, height, 0xffffff, 0);
+    hitArea.setInteractive({ useHandCursor: true });
+    hitArea.on("pointerdown", () => { group.setScale(0.97); callback(); });
+    hitArea.on("pointerup", () => group.setScale(1));
+    hitArea.on("pointerout", () => group.setScale(1));
+    group.add([shadow, plate, text, hitArea]);
   }
 }

@@ -1,5 +1,5 @@
 export const ROUTE = [
-  { id: "windhoek", name: "Windhoek", short: "Windhoek", x: 64, y: 67, kind: "major", scene: "PackScene" },
+  { id: "windhoek", name: "Windhoek", short: "Windhoek", x: 64, y: 67, kind: "major", scene: "WindhoekScene" },
   { id: "solitaire", name: "Solitaire", short: "Solitaire", x: 50, y: 78, kind: "stage" },
   { id: "sesriem", name: "Sesriem", short: "Sesriem", x: 42, y: 86, kind: "major" },
   { id: "deadvlei", name: "Sossusvlei / Deadvlei", short: "Deadvlei", x: 36, y: 91, kind: "stage" },
