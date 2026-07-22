@@ -1,9 +1,11 @@
 import { BaseScene } from "./BaseScene.js";
 import { HEROES, STAT_LABELS } from "../data/heroes.js";
+import { GEAR } from "../data/gear.js";
 import { ROUTE, ROUTE_INDEX, ROUTE_LABEL_OFFSETS } from "../data/route.js";
 
 const MAP_SCALE = 1.18;
 const MAP_MARGIN = 14;
+const MAP_BOTTOM_PAN = 104;
 
 export class MapScene extends BaseScene {
   constructor(){
@@ -178,7 +180,7 @@ export class MapScene extends BaseScene {
   }
 
   configureMapCamera(){
-    this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
+    this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight + MAP_BOTTOM_PAN);
     const current = ROUTE[this.currentIndex];
     const focusX = Phaser.Math.Clamp(this.mapX(current.x) - this.W / 2, 0, Math.max(0, this.worldWidth - this.W));
     const focusY = Phaser.Math.Clamp(this.mapY(current.y) - this.H * 0.52, 0, Math.max(0, this.worldHeight - this.H));
@@ -284,10 +286,6 @@ export class MapScene extends BaseScene {
   }
 
   openGearFromMap(){
-    if(this.currentIndex === 0){
-      this.scene.start("GearScene");
-      return;
-    }
     this.toggleGearCard();
   }
 
@@ -303,7 +301,7 @@ export class MapScene extends BaseScene {
     this.renderLocationPanel(point, state, index);
     if(moveCamera){
       const targetX = Phaser.Math.Clamp(this.mapX(point.x) - this.W / 2, 0, Math.max(0, this.worldWidth - this.W));
-      const targetY = Phaser.Math.Clamp(this.mapY(point.y) - this.H * 0.50, 0, Math.max(0, this.worldHeight - this.H));
+      const targetY = Phaser.Math.Clamp(this.mapY(point.y) - this.H * 0.50, 0, Math.max(0, this.worldHeight + MAP_BOTTOM_PAN - this.H));
       this.cameras.main.pan(targetX + this.W / 2, targetY + this.H / 2, 420, "Sine.easeInOut");
     }
   }
@@ -369,15 +367,17 @@ export class MapScene extends BaseScene {
     }
     this.closePopup();
     this.popupType = "gear";
-    const card = this.createPopup(this.W - 224, 63, 206, 160);
-    const selectedGear = (this.getSave().gear || []).length;
+    const selectedIds = this.getSave().gear || [];
+    const selectedGear = GEAR.filter((item) => selectedIds.includes(item.id));
+    const cardHeight = selectedGear.length ? 190 : 132;
+    const card = this.createPopup(this.W - 224, 63, 206, cardHeight);
     card.add(this.add.text(14, 12, "EKWIPUNEK", { fontFamily: "Georgia", fontSize: "13px", fontStyle: "bold", color: "#f1d79e", letterSpacing: 1 }));
-    card.add(this.add.text(14, 42, `Wybrane elementy: ${selectedGear} / 5\nSprzęt przygotujesz w Windhoek.`, {
-      fontFamily: "Georgia", fontSize: "10px", color: "#dac8a5", lineSpacing: 4, wordWrap: { width: 176 }
+    const copy = selectedGear.length
+      ? `Wybrane: ${selectedGear.length} / 5\n\n${selectedGear.map((item) => `• ${item.name}`).join("\n")}`
+      : "Nie wybrano jeszcze wyposażenia.\n\nNajpierw przygotuj sprzęt w Windhoek.";
+    card.add(this.add.text(14, 42, copy, {
+      fontFamily: "Georgia", fontSize: "10px", color: "#dac8a5", lineSpacing: 3, wordWrap: { width: 176 }
     }));
-    if(this.currentIndex === 0){
-      this.addPopupAction(card, 14, 116, "PRZEJDŹ DO SPRZĘTU", () => this.scene.start("GearScene"));
-    }
   }
 
   toggleSettingsCard(){
