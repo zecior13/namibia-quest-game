@@ -157,6 +157,15 @@ export class BaseScene extends Phaser.Scene {
     localStorage.setItem("namibiaQuestV2", JSON.stringify({ ...saved, ...patch }));
   }
 
+  resetExpeditionSave(){
+    const saved = this.getSave();
+    const preferences = {};
+    ["music", "sfx", "vibration", "language"].forEach((key) => {
+      if(Object.prototype.hasOwnProperty.call(saved, key)) preferences[key] = saved[key];
+    });
+    localStorage.setItem("namibiaQuestV2", JSON.stringify(preferences));
+  }
+
   getSave(){
     return JSON.parse(localStorage.getItem("namibiaQuestV2") || "{}");
   }

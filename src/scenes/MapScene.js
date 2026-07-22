@@ -1,4 +1,4 @@
-import { BaseScene } from "./BaseScene.js";
+import { BaseScene } from "./BaseScene.js?v=6";
 import { HEROES, STAT_LABELS } from "../data/heroes.js";
 import { GEAR } from "../data/gear.js";
 import { ROUTE, ROUTE_INDEX, ROUTE_LABEL_OFFSETS } from "../data/route.js";
@@ -369,15 +369,27 @@ export class MapScene extends BaseScene {
     this.popupType = "gear";
     const selectedIds = this.getSave().gear || [];
     const selectedGear = GEAR.filter((item) => selectedIds.includes(item.id));
-    const cardHeight = selectedGear.length ? 190 : 132;
+    const cardHeight = selectedGear.length ? 210 : 132;
     const card = this.createPopup(this.W - 224, 63, 206, cardHeight);
     card.add(this.add.text(14, 12, "EKWIPUNEK", { fontFamily: "Georgia", fontSize: "13px", fontStyle: "bold", color: "#f1d79e", letterSpacing: 1 }));
-    const copy = selectedGear.length
-      ? `Wybrane: ${selectedGear.length} / 5\n\n${selectedGear.map((item) => `• ${item.name}`).join("\n")}`
-      : "Nie wybrano jeszcze wyposażenia.\n\nNajpierw przygotuj sprzęt w Windhoek.";
-    card.add(this.add.text(14, 42, copy, {
-      fontFamily: "Georgia", fontSize: "10px", color: "#dac8a5", lineSpacing: 3, wordWrap: { width: 176 }
-    }));
+    if(selectedGear.length){
+      card.add(this.add.text(14, 38, `Wybrane: ${selectedGear.length} / 5`, {
+        fontFamily: "Georgia", fontSize: "9px", color: "#bda77e"
+      }));
+      selectedGear.forEach((item, index) => {
+        const y = 62 + index * 27;
+        card.add(this.add.text(14, y, `• ${item.name}`, {
+          fontFamily: "Georgia", fontSize: "9px", color: "#ead9b7", wordWrap: { width: 108 }
+        }));
+        card.add(this.add.text(192, y, item.mod, {
+          fontFamily: "Georgia", fontSize: "8px", fontStyle: "bold", color: "#d5a956"
+        }).setOrigin(1, 0));
+      });
+    }else{
+      card.add(this.add.text(14, 42, "Nie wybrano jeszcze wyposażenia.\n\nNajpierw przygotuj sprzęt w Windhoek.", {
+        fontFamily: "Georgia", fontSize: "10px", color: "#dac8a5", lineSpacing: 3, wordWrap: { width: 176 }
+      }));
+    }
   }
 
   toggleSettingsCard(){

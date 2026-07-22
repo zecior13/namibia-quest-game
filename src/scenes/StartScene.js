@@ -1,4 +1,4 @@
-import { BaseScene } from "./BaseScene.js";
+import { BaseScene } from "./BaseScene.js?v=6";
 
 export class StartScene extends BaseScene {
   constructor(){
@@ -114,6 +114,7 @@ export class StartScene extends BaseScene {
     bottomShade.fillRect(0, this.H * 0.78, this.W, this.H * 0.22);
 
     this.addRetroButton(22, this.H - 112, this.W - 44, 42, "NOWA WYPRAWA", () => {
+      this.resetExpeditionSave();
       this.scene.start("HeroSelectScene");
     });
     this.addRetroButton(22, this.H - 62, this.W - 44, 34, "KONTYNUUJ", () => {

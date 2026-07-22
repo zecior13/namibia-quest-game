@@ -1,7 +1,7 @@
 import { BootScene } from "./scenes/BootScene.js";
-import { StartScene } from "./scenes/StartScene.js";
-import { HeroSelectScene } from "./scenes/HeroSelectScene.js";
-import { MapScene } from "./scenes/MapScene.js?v=5";
+import { StartScene } from "./scenes/StartScene.js?v=6";
+import { HeroSelectScene } from "./scenes/HeroSelectScene.js?v=6";
+import { MapScene } from "./scenes/MapScene.js?v=6";
 import { WindhoekScene } from "./scenes/WindhoekScene.js";
 import { GearScene } from "./scenes/GearScene.js";
 import { PackScene } from "./scenes/PackScene.js";

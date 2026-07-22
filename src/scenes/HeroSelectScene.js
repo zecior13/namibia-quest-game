@@ -1,4 +1,4 @@
-import { BaseScene } from "./BaseScene.js";
+import { BaseScene } from "./BaseScene.js?v=6";
 import { HEROES, STAT_LABELS } from "../data/heroes.js";
 
 const CROPS = {
@@ -219,7 +219,8 @@ export class HeroSelectScene extends BaseScene {
         heroName: name,
         heroArchetype: this.hero.name,
         stats: this.hero.stats,
-        progress: "windhoek"
+        progress: "windhoek",
+        mapStage: "windhoek"
       });
       this.closeNameEntry();
       this.scene.start("MapScene");
