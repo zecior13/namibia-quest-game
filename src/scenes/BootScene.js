@@ -13,12 +13,12 @@ export class BootScene extends Phaser.Scene {
     this.load.image("heroDriver", "assets/art/hero-driver-kapitan-4x4.png");
     this.load.image("heroGarageSelect", "assets/art/hero-garage-select-v1.png");
     this.load.image("heroKiraFull", "assets/characters/full/kira-red-dust-moyo-alpha.png");
-    this.load.image("heroFull-nia", "assets/characters/full/nia-trail-kambonde-alpha.png");
-    this.load.image("heroFull-bruno", "assets/characters/full/bruno-cargo-bay-kruger-alpha.png");
-    this.load.image("heroFull-celeste", "assets/characters/full/celeste-hotelowa-ferreira-alpha.png");
-    this.load.image("heroFull-tebo", "assets/characters/full/tebo-gadala-ndlovu-alpha.png");
-    this.load.image("heroFull-mira", "assets/characters/full/mira-migawka-nakamura-alpha.png");
-    this.load.image("heroFull-alex", "assets/characters/full/alex-blysk-carter-alpha.png");
+    this.load.image("heroFull-nia", "assets/characters/full/nia-trail-kambonde-alpha.png?v=2");
+    this.load.image("heroFull-bruno", "assets/characters/full/bruno-cargo-bay-kruger-alpha.png?v=2");
+    this.load.image("heroFull-celeste", "assets/characters/full/celeste-hotelowa-ferreira-alpha.png?v=2");
+    this.load.image("heroFull-tebo", "assets/characters/full/tebo-gadala-ndlovu-alpha.png?v=2");
+    this.load.image("heroFull-mira", "assets/characters/full/mira-migawka-nakamura-alpha.png?v=2");
+    this.load.image("heroFull-alex", "assets/characters/full/alex-blysk-carter-alpha.png?v=2");
     HERO_SHEETS.forEach(({ key, path }) => this.load.image(key, path));
     this.load.image("cargoScene", "assets/pack/cargo-scene.png");
     this.load.image("packItems", "assets/pack/pack-items.png");
