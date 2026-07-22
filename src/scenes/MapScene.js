@@ -234,7 +234,7 @@ export class MapScene extends BaseScene {
       fontFamily: "Georgia", fontSize: "9px", fontStyle: "bold", color: "#c59a55", letterSpacing: 1
     }).setScrollFactor(0).setDepth(33);
 
-    this.addTextButton(this.W - 125, 20, 72, 34, "SPRZĘT", () => this.toggleGearCard(), 32);
+    this.addTextButton(this.W - 125, 20, 72, 34, "SPRZĘT", () => this.openGearFromMap(), 32);
     this.addSettingsControl(this.W - 29, 37);
   }
 
@@ -248,10 +248,20 @@ export class MapScene extends BaseScene {
     const text = this.add.text(width / 2, height / 2, label, {
       fontFamily: "Georgia", fontSize: "9px", fontStyle: "bold", color: "#ead09a", letterSpacing: 1
     }).setOrigin(0.5);
-    const hitArea = this.add.rectangle(width / 2, height / 2, width, height, 0xffffff, 0.001)
+    group.add([plate, text]);
+
+    // Keep HUD input outside transformed containers so the visible control and
+    // its touch target always share the same screen coordinates.
+    const hitArea = this.add.zone(x, y, width, height)
+      .setOrigin(0)
+      .setScrollFactor(0)
+      .setDepth(100 + depth)
       .setInteractive({ useHandCursor: true });
-    group.add([plate, text, hitArea]);
-    hitArea.on("pointerdown", callback);
+    hitArea.on("pointerdown", (pointer, localX, localY, event) => {
+      event?.stopPropagation();
+      callback();
+    });
+    group.hitArea = hitArea;
     return group;
   }
 
@@ -273,6 +283,14 @@ export class MapScene extends BaseScene {
     group.on("pointerdown", () => this.toggleSettingsCard());
   }
 
+  openGearFromMap(){
+    if(this.currentIndex === 0){
+      this.scene.start("GearScene");
+      return;
+    }
+    this.toggleGearCard();
+  }
+
   addLocationPanel(){
     this.locationLayer = this.add.container(0, 0).setScrollFactor(0).setDepth(40);
   }
@@ -291,6 +309,10 @@ export class MapScene extends BaseScene {
   }
 
   renderLocationPanel(point, state, index){
+    if(this.locationActionHitArea){
+      this.locationActionHitArea.destroy();
+      this.locationActionHitArea = null;
+    }
     this.locationLayer.removeAll(true);
     const y = this.H - 92;
     const shade = this.add.graphics();
@@ -319,6 +341,7 @@ export class MapScene extends BaseScene {
       }, 1);
       action.setScrollFactor(0);
       this.locationLayer.add(action);
+      this.locationActionHitArea = action.hitArea;
     }
   }
 
