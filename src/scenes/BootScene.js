@@ -12,6 +12,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image("startVehicleClean", "assets/art/start-scene-vehicle-clean.png?v=1");
     this.load.image("heroDriver", "assets/art/hero-driver-kapitan-4x4.png");
     this.load.image("heroGarageSelect", "assets/art/hero-garage-select-v1.png");
+    this.load.image("campaignMap", "assets/art/namibia-campaign-map-v1.png");
     this.load.image("heroKiraFull", "assets/characters/full/kira-red-dust-moyo-alpha.png");
     this.load.image("heroFull-nia", "assets/characters/full/nia-trail-kambonde-alpha.png?v=2");
     this.load.image("heroFull-bruno", "assets/characters/full/bruno-cargo-bay-kruger-alpha.png?v=2");
