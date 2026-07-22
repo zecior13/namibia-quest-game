@@ -53,8 +53,8 @@ export class BaseScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     group.add([bg, text]);
-    group.setSize(w, h);
-    group.setInteractive({ useHandCursor: true });
+    group.setInteractive(new Phaser.Geom.Rectangle(0, 0, w, h), Phaser.Geom.Rectangle.Contains);
+    group.input.cursor = "pointer";
     group.on("pointerdown", () => {
       group.setScale(0.98);
       callback();

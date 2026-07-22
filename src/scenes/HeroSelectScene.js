@@ -174,9 +174,10 @@ export class HeroSelectScene extends BaseScene {
     });
     this.addRetroButton(this.W * 0.60, this.H - 65, this.W * 0.34, 38, "WYBIERAM", () => {
       const name = window.prompt("Jak ma nazywać się bohater?", this.hero.name.split(" ")[0]);
+      if(name === null) return;
       this.saveGamePatch({
         heroId: this.hero.id,
-        heroName: name && name.trim() ? name.trim() : this.hero.name.split(" ")[0],
+        heroName: name.trim() || this.hero.name.split(" ")[0],
         heroArchetype: this.hero.name,
         stats: this.hero.stats,
         progress: "windhoek"
@@ -199,8 +200,8 @@ export class HeroSelectScene extends BaseScene {
       fontFamily: "Georgia", fontSize: "13px", fontStyle: "bold", color: "#fff0c2", letterSpacing: 1
     }).setOrigin(0.5);
     group.add([shadow, plate, text]);
-    group.setSize(width, height);
-    group.setInteractive({ useHandCursor: true });
+    group.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+    group.input.cursor = "pointer";
     group.on("pointerdown", () => { group.setScale(0.97); callback(); });
     group.on("pointerup", () => group.setScale(1));
     group.on("pointerout", () => group.setScale(1));

@@ -249,7 +249,8 @@ export class MapScene extends BaseScene {
       fontFamily: "Georgia", fontSize: "9px", fontStyle: "bold", color: "#ead09a", letterSpacing: 1
     }).setOrigin(0.5);
     group.add([plate, text]);
-    group.setSize(width, height).setInteractive({ useHandCursor: true });
+    group.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+    group.input.cursor = "pointer";
     group.on("pointerdown", callback);
     return group;
   }
@@ -266,7 +267,9 @@ export class MapScene extends BaseScene {
       const angle = (Math.PI * 2 * index) / 8;
       g.lineBetween(Math.cos(angle) * 9, Math.sin(angle) * 9, Math.cos(angle) * 12, Math.sin(angle) * 12);
     }
-    group.add(g).setSize(38, 38).setInteractive({ useHandCursor: true });
+    group.add(g);
+    group.setInteractive(new Phaser.Geom.Circle(0, 0, 19), Phaser.Geom.Circle.Contains);
+    group.input.cursor = "pointer";
     group.on("pointerdown", () => this.toggleSettingsCard());
   }
 
@@ -298,7 +301,7 @@ export class MapScene extends BaseScene {
     const visibleName = state === "locked" ? "NIEZNANY ETAP" : point.name.toUpperCase();
     const descriptions = {
       current: "Ostatnie przygotowania przed drogą na południe.",
-      available: "Droga jest otwarta.",
+      available: point.scene ? "Droga jest otwarta." : "Najpierw ukończ bieżący etap wyprawy.",
       completed: "Etap ukończony. Możesz wrócić do próby.",
       locked: "Szlak odsłoni tę część mapy później."
     };
@@ -320,7 +323,12 @@ export class MapScene extends BaseScene {
   }
 
   toggleHeroCard(hero){
+    if(this.popupType === "hero"){
+      this.closePopup();
+      return;
+    }
     this.closePopup();
+    this.popupType = "hero";
     const card = this.createPopup(18, 86, 205, 154);
     card.add(this.add.text(14, 12, hero.name, { fontFamily: "Georgia", fontSize: "13px", fontStyle: "bold", color: "#f1d79e", wordWrap: { width: 177 } }));
     card.add(this.add.text(14, 48, hero.role.toUpperCase(), { fontFamily: "Georgia", fontSize: "8px", fontStyle: "bold", color: "#c6954d", letterSpacing: 1 }));
@@ -332,7 +340,12 @@ export class MapScene extends BaseScene {
   }
 
   toggleGearCard(){
+    if(this.popupType === "gear"){
+      this.closePopup();
+      return;
+    }
     this.closePopup();
+    this.popupType = "gear";
     const card = this.createPopup(this.W - 224, 63, 206, 132);
     card.add(this.add.text(14, 12, "EKWIPUNEK", { fontFamily: "Georgia", fontSize: "13px", fontStyle: "bold", color: "#f1d79e", letterSpacing: 1 }));
     card.add(this.add.text(14, 44, "Samochód czeka na spakowanie.\nSprzęt wybierzesz w Windhoek.", {
@@ -341,7 +354,12 @@ export class MapScene extends BaseScene {
   }
 
   toggleSettingsCard(){
+    if(this.popupType === "settings"){
+      this.closePopup();
+      return;
+    }
     this.closePopup();
+    this.popupType = "settings";
     const card = this.createPopup(this.W - 224, 63, 206, 146);
     card.add(this.add.text(14, 12, "USTAWIENIA", { fontFamily: "Georgia", fontSize: "13px", fontStyle: "bold", color: "#f1d79e", letterSpacing: 1 }));
     const music = this.getSave().music !== false ? "WŁ." : "WYŁ.";
@@ -371,9 +389,25 @@ export class MapScene extends BaseScene {
   }
 
   addPopupAction(card, x, y, label, callback){
-    const text = this.add.text(x, y, label, { fontFamily: "Georgia", fontSize: "10px", fontStyle: "bold", color: "#e8d2a3" });
-    text.setInteractive({ useHandCursor: true }).on("pointerdown", callback);
-    card.add(text);
+    const width = 178;
+    const height = 30;
+    const plate = this.add.graphics();
+    plate.fillStyle(0x243c40, 0.78);
+    plate.fillRect(x, y - 7, width, height);
+    plate.lineStyle(1, 0x9b7a45, 0.65);
+    plate.strokeRect(x, y - 7, width, height);
+    const text = this.add.text(x + 10, y - 7 + height / 2, label, {
+      fontFamily: "Georgia", fontSize: "10px", fontStyle: "bold", color: "#e8d2a3"
+    }).setOrigin(0, 0.5);
+    const hitArea = this.add.zone(card.x + x, card.y + y - 7, width, height)
+      .setOrigin(0)
+      .setScrollFactor(0)
+      .setDepth(61)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", callback);
+    card.add([plate, text]);
+    this.popupHitAreas = this.popupHitAreas || [];
+    this.popupHitAreas.push(hitArea);
   }
 
   closePopup(){
@@ -381,6 +415,11 @@ export class MapScene extends BaseScene {
       this.popup.destroy(true);
       this.popup = null;
     }
+    if(this.popupHitAreas){
+      this.popupHitAreas.forEach((hitArea) => hitArea.destroy());
+      this.popupHitAreas = [];
+    }
+    this.popupType = null;
   }
 
   getCurrentIndex(){

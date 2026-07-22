@@ -227,37 +227,38 @@ export class PackScene extends BaseScene {
   }
 
   drawControls(){
-    this.add.text(92, 744, this.message, {
+    const firstRowY = this.H - 72;
+    const secondRowY = this.H - 36;
+    this.add.text(18, this.H - 112, this.message, {
       fontFamily:"monospace", fontSize:"9px", fontStyle:"bold", color:"#f8e4ba",
-      wordWrap:{ width:this.W - 104 }, lineSpacing:2, stroke:"#172423", strokeThickness:3
+      wordWrap:{ width:this.W - 36 }, lineSpacing:2, stroke:"#172423", strokeThickness:3
     });
-    this.command(94, 808, "◀", ()=>this.nudgeActive(-1));
-    this.command(132, 808, "▶", ()=>this.nudgeActive(1));
-    this.command(186, 808, "↺ OBRÓĆ", ()=>this.rotateActive());
-    this.command(286, 808, "PCHNIJ", ()=>this.pushActive());
-    this.command(92, 774, "↶ COFNIJ", ()=>this.undoLast());
-    this.command(224, 774, "RESET", ()=>this.resetPacking());
+    this.command(14, firstRowY, 70, "MAPA", ()=>this.scene.start("MapScene"));
+    this.command(90, firstRowY, 92, "COFNIJ", ()=>this.undoLast());
+    this.command(188, firstRowY, 72, "RESET", ()=>this.resetPacking());
+    this.command(14, secondRowY, 42, "◀", ()=>this.nudgeActive(-1));
+    this.command(62, secondRowY, 42, "▶", ()=>this.nudgeActive(1));
+    this.command(110, secondRowY, 116, "OBRÓĆ", ()=>this.rotateActive());
+    this.command(232, secondRowY, this.W - 246, "PCHNIJ", ()=>this.pushActive());
     if(this.placed.length === ITEMS.length){
-      const continueText = this.add.text(this.W - 12, 774, "RUSZAJ →", {
-        fontFamily:"monospace", fontSize:"13px", fontStyle:"bold", color:"#f1c873"
-      }).setOrigin(1, 0);
-      this.add.zone(this.W - 12 - continueText.width - 12, 768, continueText.width + 24, continueText.height + 16)
-        .setOrigin(0)
-        .setInteractive({ useHandCursor:true })
-        .on("pointerdown", ()=>{
+      this.command(266, firstRowY, this.W - 280, "RUSZAJ", ()=>{
         this.saveGamePatch({ packComplete:true, windhoekDone:true, progress:"solitaire" });
         this.scene.start("MapScene");
       });
     }
   }
 
-  command(x, y, label, callback){
-    const button = this.add.text(x, y, label, {
-      fontFamily:"monospace", fontSize:"11px", fontStyle:"bold", color:"#f4d49c",
-      backgroundColor:"#182a2b", padding:{ left:7, right:7, top:6, bottom:6 }
-    });
-    // Keep the visual button unchanged, but give touch users a forgiving target.
-    this.add.zone(x - 8, y - 6, Math.max(38, button.width + 16), button.height + 12)
+  command(x, y, width, label, callback){
+    const height = 30;
+    const plate = this.add.graphics();
+    plate.fillStyle(0x182a2b, 0.96);
+    plate.fillRect(x, y, width, height);
+    plate.lineStyle(1, 0xa8844c, 0.72);
+    plate.strokeRect(x, y, width, height);
+    this.add.text(x + width / 2, y + height / 2, label, {
+      fontFamily:"monospace", fontSize:"10px", fontStyle:"bold", color:"#f4d49c"
+    }).setOrigin(0.5);
+    this.add.zone(x, y, width, height)
       .setOrigin(0)
       .setInteractive({ useHandCursor:true })
       .on("pointerdown", callback);
