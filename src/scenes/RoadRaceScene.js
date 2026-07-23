@@ -6,10 +6,12 @@ import {
   speedKmh,
   stepRallyPhysics
 } from "../race/rallyPhysics.js";
+import { HEROES } from "../data/heroes.js";
 
 const clamp = Phaser.Math.Clamp;
 
 const FINISH_METERS = 2200;
+const BASE_TIME_LIMIT_SECONDS = 115;
 const SEGMENT_METERS = 10;
 const SEGMENT_LENGTH = 200;
 const ROAD_WIDTH = 1580;
@@ -62,17 +64,25 @@ export class RoadRaceScene extends Phaser.Scene {
     this.wasRunningBeforeHide = false;
     this.briefing = null;
     this.leavingRace = false;
+    this.resumeTimers = [];
+    this.heroReaction = null;
   }
 
   create(){
     this.resetSessionState();
     this.cameras.main.setBackgroundColor("#182829");
+    const save = JSON.parse(localStorage.getItem("namibiaQuestV2") || "{}");
+    this.hero = HEROES.find((hero) => hero.id === save.heroId) || HEROES[0];
+    this.timeLimit = BASE_TIME_LIMIT_SECONDS + (this.hero.stats.tempo - 5) * 1.5;
+    this.damageMultiplier = clamp(1 - (this.hero.stats.spokoj - 5) * 0.025, 0.88, 1.08);
     this.drive = {
       ...createRallyState(),
       meters: 0,
       position: 0,
       damage: 0,
       elapsed: 0,
+      timeRemaining: this.timeLimit,
+      sandSlowRemaining: 0,
       currentCurve: 0,
       slope: 0,
       offRoad: false,
@@ -88,7 +98,7 @@ export class RoadRaceScene extends Phaser.Scene {
     this.buildScene();
     this.scale.on("resize", this.layout, this);
     this.visibilityHandler = () => this.handleVisibilityChange();
-    this.orientationHandler = () => this.time.delayedCall(180, () => this.layout());
+    this.orientationHandler = () => this.scheduleViewportRefresh();
     document.addEventListener("visibilitychange", this.visibilityHandler);
     window.addEventListener("orientationchange", this.orientationHandler);
     this.events.once("shutdown", this.shutdown, this);
@@ -190,11 +200,17 @@ export class RoadRaceScene extends Phaser.Scene {
   addHud(){
     this.hudShade = this.add.graphics().setDepth(20);
     const hudStyle = { fontFamily: "Georgia", fontStyle: "bold", color: "#ead6a8" };
-    this.stageText = this.add.text(0, 0, "ROAD TO SPITZKOPPE  /  ODCINEK 1", { ...hudStyle, fontSize: "13px", letterSpacing: 1 }).setDepth(22);
+    this.heroPortrait = this.add.image(0, 0, `heroPortrait-${this.hero.id}`).setOrigin(0).setDepth(22);
+    this.heroFrame = this.add.graphics().setDepth(23);
+    this.stageText = this.add.text(0, 0, "ROAD TO SPITZKOPPE  /  ODCINEK 1", { ...hudStyle, fontSize: "12px", letterSpacing: 1 }).setDepth(22);
     this.speedText = this.add.text(0, 0, "052", { ...hudStyle, fontSize: "31px", color: "#f4e3bb" }).setOrigin(1, 0).setDepth(22);
     this.speedUnit = this.add.text(0, 0, "KM/H", { ...hudStyle, fontSize: "9px", color: "#c79d5a" }).setOrigin(1, 0).setDepth(22);
     this.distanceText = this.add.text(0, 0, "2.20 KM", { ...hudStyle, fontSize: "12px" }).setDepth(22);
-    this.damageText = this.add.text(0, 0, "AUTO 100%", { ...hudStyle, fontSize: "10px", color: "#d8bd7c" }).setDepth(22);
+    this.timeText = this.add.text(0, 0, "01:55", { ...hudStyle, fontSize: "12px", color: "#f0d18e" }).setDepth(22);
+    this.damageText = this.add.text(0, 0, "AUTO 100%", { ...hudStyle, fontSize: "11px", color: "#d8bd7c" }).setDepth(22);
+    this.heroBonusText = this.add.text(0, 0, `TEMPO ${this.hero.stats.tempo}  ·  ${this.formatTime(this.timeLimit)}`, {
+      ...hudStyle, fontSize: "8px", color: "#bfa36d"
+    }).setDepth(22);
     this.gearText = this.add.text(0, 0, "II", { ...hudStyle, fontSize: "15px" }).setOrigin(0.5).setDepth(22);
     this.exitRaceButton = this.makeHudButton("WYJDŹ", () => this.leaveRace()).setDepth(31);
     this.message = this.add.text(0, 0, "", {
@@ -273,13 +289,19 @@ export class RoadRaceScene extends Phaser.Scene {
     this.backdropBaseScale = bgScale;
     this.backdrop.setScale(bgScale).setPosition(W / 2, -H * 0.08);
     this.flash.setSize(W, H);
-    this.stageText.setPosition(22, 13);
-    this.distanceText.setPosition(22, 36);
+    this.heroPortrait.setPosition(15, 8).setDisplaySize(44, 44);
+    this.heroFrame.clear();
+    this.heroFrame.lineStyle(2, 0xd4ad68, 0.92).strokeRect(13, 6, 48, 48);
+    this.heroFrame.lineStyle(1, this.hero.color, 0.95).strokeRect(16, 9, 42, 42);
+    this.stageText.setPosition(72, 9);
+    this.distanceText.setPosition(72, 31);
+    this.heroBonusText.setPosition(72, 49);
     this.speedText.setPosition(W - 23, 5);
     this.speedUnit.setPosition(W - 23, 39);
-    this.damageText.setPosition(W * 0.67, 41);
+    this.timeText.setPosition(W * 0.64, 10);
+    this.damageText.setPosition(W * 0.64, 36);
     this.gearText.setPosition(W - 30, 74);
-    this.exitRaceButton.setPosition(W * 0.53, 23).setVisible(this.landscape && !this.leavingRace);
+    this.exitRaceButton.setPosition(W * 0.48, 25).setVisible(this.landscape && !this.leavingRace);
     this.message.setPosition(W / 2, 82);
     const vehicleH = clamp(H * 0.4, 120, 184);
     this.vehicle.setScale(vehicleH / this.vehicle.height);
@@ -341,7 +363,7 @@ export class RoadRaceScene extends Phaser.Scene {
     this.briefBody.setPosition(W / 2, H * 0.43).setWordWrapWidth(W * 0.72);
     this.briefBody.setText(portrait
       ? "Ta trasa działa poziomo. Wyłącz blokadę obrotu ekranu, wybierz sterowanie i obróć telefon. Gra ruszy dopiero po zmianie widoku."
-      : "2,2 km szutru. Zakręty, grzbiety, miękki piach i zwierzęta. Dowieź auto do Spitzkoppe.");
+      : `Dojedź 2,2 km do Spitzkoppe w ${this.formatTime(this.timeLimit)}. Czas albo zniszczenie auta kończą próbę. Miękki piach odbiera prędkość.`);
     const buttonW = portrait ? clamp(W * 0.48, 168, 210) : clamp(W * 0.3, 180, 240);
     this.touchButton.setPosition(W / 2, H * 0.68);
     this.touchButton.plate.clear().fillStyle(0x183238, 0.96).fillRect(-buttonW / 2, -25, buttonW, 50).lineStyle(2, 0xc69b58, 0.92).strokeRect(-buttonW / 2, -25, buttonW, 50);
@@ -404,13 +426,32 @@ export class RoadRaceScene extends Phaser.Scene {
       this.steerThumb?.setVisible(false);
       return;
     }
-    this.time.delayedCall(180, () => {
+    this.scheduleViewportRefresh();
+    const resume = window.setTimeout(() => {
+      if(!this.sys.isActive()) return;
+      this.scale.refresh();
       this.layout();
+      this.vehicle.setVisible(this.landscape);
+      this.vehicleShadow.setVisible(this.landscape);
       if(!this.wasRunningBeforeHide || this.finished) return;
       this.wasRunningBeforeHide = false;
       if(this.scale.width > this.scale.height) this.resumeAfterRotation();
       else this.pauseForPortrait();
-    });
+    }, 320);
+    this.resumeTimers.push(resume);
+  }
+
+  scheduleViewportRefresh(){
+    for(const timer of this.resumeTimers) window.clearTimeout(timer);
+    this.resumeTimers = [80, 260, 620].map((delay) => window.setTimeout(() => {
+      if(!this.sys.isActive()) return;
+      this.scale.refresh();
+      this.layout();
+      if(this.scale.width > this.scale.height){
+        this.vehicle.setVisible(true);
+        this.vehicleShadow.setVisible(true);
+      }
+    }, delay));
   }
 
   update(time, deltaMs){
@@ -458,12 +499,18 @@ export class RoadRaceScene extends Phaser.Scene {
     const currentKmh = speedKmh(drive);
     if(drive.offRoad && currentKmh > 94) drive.damage += 1.25 * dt;
     else if(drive.oneWheelOff && currentKmh > 125) drive.damage += 0.35 * dt;
+    if(drive.sandSlowRemaining > 0){
+      drive.sandSlowRemaining = Math.max(0, drive.sandSlowRemaining - dt);
+      drive.speedMps = Math.min(drive.speedMps, 10 / 3.6);
+    }
     const metersPerSecond = drive.speedMps;
     drive.meters += metersPerSecond * dt;
     drive.position += metersPerSecond * dt * (SEGMENT_LENGTH / SEGMENT_METERS);
     drive.elapsed += dt;
+    drive.timeRemaining = Math.max(0, drive.timeRemaining - dt);
     this.handleHazards();
     if(drive.damage >= 100) this.endRace(false, "AUTO NIE WYTRZYMAŁO TRASY");
+    else if(drive.timeRemaining <= 0) this.endRace(false, "CZAS MINĄŁ");
     else if(drive.meters >= FINISH_METERS) this.endRace(true, "SPITZKOPPE NA HORYZONCIE");
   }
 
@@ -478,19 +525,22 @@ export class RoadRaceScene extends Phaser.Scene {
       if(separation >= contactWidth) continue;
       hazard.hit = true;
       if(hazard.type === "rocks"){
-        this.drive.damage += 28;
+        this.drive.damage += 28 * this.damageMultiplier;
         this.drive.speedMps *= 0.42;
         this.cameras.main.shake(250, 0.014);
         this.flashHit();
+        this.triggerHeroReaction("hit", 900);
         this.showMessage("SKAŁY!", 850);
       }else if(hazard.type === "oryx"){
-        this.drive.damage += 7;
+        this.drive.damage += 7 * this.damageMultiplier;
         this.drive.speedMps *= 0.32;
+        this.triggerHeroReaction("shock", 1000);
         this.showMessage("HAMOWANIE AWARYJNE", 1000);
       }else{
-        const enteredFast = speedKmh(this.drive) > 112;
-        this.drive.speedMps *= enteredFast ? 0.86 : 0.38;
-        this.showMessage(enteredFast ? "PRZEZ PIACH Z ROZPĘDU" : "MIĘKKI PIASEK", 900);
+        this.drive.speedMps = Math.min(this.drive.speedMps, 10 / 3.6);
+        this.drive.sandSlowRemaining = Math.max(1.75, 2.45 - Math.max(0, this.hero.stats.sila - 5) * 0.12);
+        this.triggerHeroReaction("sand", 1600);
+        this.showMessage("MIĘKKI PIASEK  ·  PRĘDKOŚĆ 10 KM/H", 2100);
       }
     }
   }
@@ -514,6 +564,15 @@ export class RoadRaceScene extends Phaser.Scene {
     point.screen.x = Math.round((W / 2) + point.screen.scale * point.camera.x * W / 2);
     point.screen.y = Math.round(this.horizonY - point.screen.scale * point.camera.y * H / 2);
     point.screen.w = Math.round(point.screen.scale * ROAD_WIDTH * W / 2);
+  }
+
+  projectedPoint(segment, ratio){
+    return {
+      x: Phaser.Math.Linear(segment.p1.screen.x, segment.p2.screen.x, ratio),
+      y: Phaser.Math.Linear(segment.p1.screen.y, segment.p2.screen.y, ratio),
+      w: Phaser.Math.Linear(segment.p1.screen.w, segment.p2.screen.w, ratio),
+      scale: Phaser.Math.Linear(segment.p1.screen.scale, segment.p2.screen.scale, ratio)
+    };
   }
 
   renderWorld(){
@@ -615,15 +674,18 @@ export class RoadRaceScene extends Phaser.Scene {
         const tree = segment.index % 18 === 2;
         const key = tree ? "raceAcacia" : "raceRocks";
         if(image.texture.key !== key) image.setTexture(key);
-        const scale = segment.p1.screen.scale;
-        const x = segment.p1.screen.x + segment.p1.screen.w * (tree ? 1.55 : 1.32) * side;
-        const y = segment.p1.screen.y;
+        const ratio = 0.28 + ((segment.index * 17) % 41) / 100;
+        const point = this.projectedPoint(segment, ratio);
+        const scale = point.scale;
+        const x = point.x + point.w * (tree ? 1.55 : 1.32) * side;
+        const y = point.y + 1;
         if(y < this.horizonY + 2 || y > segment.clip + 3 || y > this.scale.height + 8){
           image.setVisible(false);
           continue;
         }
         const targetH = (tree ? 1450 : 520) * scale * this.scale.height * 0.5;
-        image.setVisible(true).setPosition(x, y).setScale(targetH / image.height).setFlipX(side < 0).setDepth(Math.floor(y));
+        const horizonFade = clamp((y - this.horizonY) / 42, 0, 1);
+        image.setVisible(true).setAlpha(horizonFade).setPosition(x, y).setScale(targetH / image.height).setFlipX(side < 0).setDepth(Math.floor(y));
       }
     }
     for(; pool < this.sceneryPool.length; pool++) this.sceneryPool[pool].setVisible(false);
@@ -638,20 +700,37 @@ export class RoadRaceScene extends Phaser.Scene {
       if(!segment || hazard.meters < this.drive.meters - 12){ object.setVisible(false); continue; }
       const ahead = hazard.meters - this.drive.meters;
       const offset = this.hazardOffset(hazard, ahead);
-      const projectedX = segment.p1.screen.x + segment.p1.screen.w * offset;
-      const nearX = this.scale.width / 2 + offset * this.scale.width * 0.36;
-      const nearBlend = 1 - clamp((ahead - PLAYER_COLLISION_AHEAD) / 55, 0, 1);
-      const x = Phaser.Math.Linear(projectedX, nearX, nearBlend);
-      const y = segment.p1.screen.y;
-      const scale = segment.p1.screen.scale;
+      const ratio = (hazard.meters % SEGMENT_METERS) / SEGMENT_METERS;
+      const point = this.projectedPoint(segment, ratio);
+      const x = point.x + point.w * offset;
+      const y = point.y;
+      const scale = point.scale;
       object.setVisible(true).setPosition(x, y).setDepth(Math.floor(y) + 1);
       if(hazard.type === "sand"){
         object.clear();
         const width = Math.max(8, 720 * scale * this.scale.width * 0.5);
         const height = Math.max(3, 150 * scale * this.scale.height * 0.5);
-        object.fillStyle(0xb9854e, 0.92).fillEllipse(0, -height * 0.35, width, height);
-        object.lineStyle(1, 0xd3aa70, 0.5);
-        for(let n = -2; n <= 2; n++) object.lineBetween(n * width * 0.15, -height * 0.65, n * width * 0.11, -height * 0.05);
+        const edge = [];
+        for(let n = 0; n < 18; n++){
+          const angle = (n / 18) * Math.PI * 2;
+          const wobble = 0.86 + Math.sin(n * 2.7 + hazard.id) * 0.08;
+          edge.push(new Phaser.Geom.Point(
+            Math.cos(angle) * width * 0.5 * wobble,
+            -height * 0.42 + Math.sin(angle) * height * 0.5 * wobble
+          ));
+        }
+        object.fillStyle(0x63472f, 0.35).fillEllipse(0, -height * 0.25, width * 1.04, height * 0.92);
+        object.fillStyle(0xb67c45, 0.98).fillPoints(edge, true);
+        object.fillStyle(0x8e6039, 0.66).fillEllipse(0, -height * 0.38, width * 0.72, height * 0.42);
+        object.lineStyle(Math.max(1, height * 0.055), 0xd5ab6d, 0.62);
+        for(let n = -2; n <= 2; n++){
+          object.beginPath();
+          object.moveTo(n * width * 0.15, -height * 0.78);
+          object.lineTo(n * width * 0.11, -height * 0.12);
+          object.strokePath();
+        }
+        object.lineStyle(Math.max(1, height * 0.04), 0x62432e, 0.48);
+        object.strokeEllipse(0, -height * 0.38, width * 0.53, height * 0.24);
       }else{
         const targetH = (hazard.type === "oryx" ? 440 : 300) * scale * this.scale.height * 0.5;
         object.setScale(targetH / object.height).setFlipX(hazard.type === "oryx" && hazard.direction < 0);
@@ -693,6 +772,27 @@ export class RoadRaceScene extends Phaser.Scene {
     const currentKmh = speedKmh(this.drive);
     const dustOn = currentKmh > 25 && (this.drive.offRoad || this.drive.oneWheelOff || currentKmh > 92);
     this.dust.setFrequency(dustOn ? clamp(94 - currentKmh * 0.34, 26, 90) : -1);
+    this.renderHeroReaction(speedRatio);
+  }
+
+  renderHeroReaction(speedRatio){
+    if(!this.heroPortrait?.visible) return;
+    const active = this.heroReaction && this.time.now < this.heroReaction.until;
+    const highSpeedStress = clamp((speedRatio - (0.48 + this.hero.stats.tempo * 0.025)) / 0.25, 0, 1);
+    let angle = Math.sin(this.time.now * 0.025) * highSpeedStress * 1.6;
+    let scale = 1 + highSpeedStress * 0.035;
+    let x = 15;
+    if(active){
+      const strength = this.heroReaction.type === "hit" ? 3.2 : 1.7;
+      x += Math.sin(this.time.now * 0.08) * strength;
+      angle += Math.sin(this.time.now * 0.06) * strength;
+      scale += this.heroReaction.type === "shock" ? 0.07 : 0.035;
+    }
+    this.heroPortrait.setPosition(x, 8).setScale(1).setDisplaySize(44 * scale, 44 * scale).setAngle(angle);
+  }
+
+  triggerHeroReaction(type, duration){
+    this.heroReaction = { type, until: this.time.now + duration };
   }
 
   drawControlArtwork(){
@@ -724,8 +824,15 @@ export class RoadRaceScene extends Phaser.Scene {
     const currentKmh = speedKmh(this.drive);
     this.speedText.setText(String(Math.round(currentKmh)).padStart(3, "0"));
     this.distanceText.setText(`${remaining.toFixed(2)} KM`);
+    this.timeText.setText(`CZAS ${this.formatTime(this.drive.timeRemaining)}`)
+      .setColor(this.drive.timeRemaining < 20 ? "#e47a55" : "#f0d18e");
     this.damageText.setText(`AUTO ${Math.max(0, Math.round(100 - this.drive.damage))}%`).setColor(this.drive.damage > 65 ? "#d67652" : "#d8bd7c");
     this.gearText.setText(currentKmh < 30 ? "I" : currentKmh < 85 ? "II" : currentKmh < 135 ? "III" : "IV");
+  }
+
+  formatTime(seconds){
+    const safe = Math.max(0, Math.ceil(seconds));
+    return `${String(Math.floor(safe / 60)).padStart(2, "0")}:${String(safe % 60).padStart(2, "0")}`;
   }
 
   flashHit(){
@@ -803,12 +910,13 @@ export class RoadRaceScene extends Phaser.Scene {
     this.finished = true;
     this.running = false;
     this.drive.speedMps = 0;
+    this.triggerHeroReaction(success ? "finish" : "shock", 2400);
     const W = this.scale.width;
     const H = this.scale.height;
     const panel = this.add.container(0, 0).setDepth(70);
     const shade = this.add.rectangle(0, 0, W, H, 0x071012, 0.86).setOrigin(0);
     const heading = this.add.text(W / 2, H * 0.3, title, { fontFamily: "Georgia", fontSize: `${clamp(W * 0.042, 24, 38)}px`, fontStyle: "bold", color: success ? "#efd797" : "#df8a62", align: "center", wordWrap: { width: W * 0.76 } }).setOrigin(0.5);
-    const result = this.add.text(W / 2, H * 0.44, `${Math.min(FINISH_METERS, this.drive.meters).toFixed(0)} m  ·  ${Math.round(this.drive.elapsed)} s  ·  auto ${Math.round(100 - this.drive.damage)}%`, { fontFamily: "Georgia", fontSize: "14px", color: "#d6c29a" }).setOrigin(0.5);
+    const result = this.add.text(W / 2, H * 0.44, `${Math.min(FINISH_METERS, this.drive.meters).toFixed(0)} m  ·  ${this.formatTime(this.drive.timeRemaining)}  ·  auto ${Math.round(100 - this.drive.damage)}%`, { fontFamily: "Georgia", fontSize: "14px", color: "#d6c29a" }).setOrigin(0.5);
     const retry = this.makeBriefingButton("JESZCZE RAZ", () => this.scene.restart()).setPosition(W * 0.4, H * 0.66);
     const exit = this.makeBriefingButton(success ? "DALEJ" : "WYJDŹ", () => this.leaveRace()).setPosition(W * 0.68, H * 0.66);
     for(const button of [retry, exit]){
@@ -825,6 +933,7 @@ export class RoadRaceScene extends Phaser.Scene {
     if(this.visibilityHandler) document.removeEventListener("visibilitychange", this.visibilityHandler);
     if(this.orientationHandler) window.removeEventListener("orientationchange", this.orientationHandler);
     if(this.exitPoll) window.clearTimeout(this.exitPoll);
+    for(const timer of this.resumeTimers) window.clearTimeout(timer);
     this.visibilityHandler = null;
     this.orientationHandler = null;
   }
