@@ -11,7 +11,7 @@ import { HEROES } from "../data/heroes.js";
 const clamp = Phaser.Math.Clamp;
 
 const FINISH_METERS = 10000;
-const BASE_TIME_LIMIT_SECONDS = 350;
+const BASE_TIME_LIMIT_SECONDS = 170;
 const WORLD_PROGRESS_SCALE = 2.45;
 const FINISH_APPROACH_METERS = 650;
 const FINAL_STRAIGHT_TRANSITION_METERS = 9000;
@@ -25,6 +25,7 @@ const CAMERA_DEPTH = 0.9;
 const PLAYER_Z = CAMERA_HEIGHT * CAMERA_DEPTH;
 const PLAYER_COLLISION_AHEAD = (PLAYER_Z / SEGMENT_LENGTH) * SEGMENT_METERS;
 const COLLISION_WINDOW_METERS = 3.8;
+const ROCK_GROUND_ORIGIN_Y = 0.67;
 const HAZARD_COLLISION_WINDOW = Object.freeze({
   rocks: 3.8,
   tree: 4.4,
@@ -219,8 +220,9 @@ export class RoadRaceScene extends Phaser.Scene {
     this.road = this.add.graphics().setDepth(2);
     this.sceneryLayer = this.add.container(0, 0).setDepth(5);
     this.sceneryViews = this.scenery.map((item) => {
+      const groundOriginY = item.type === "rocks" ? ROCK_GROUND_ORIGIN_Y : 1;
       const image = this.add.image(0, 0, item.type === "tree" ? "raceAcacia" : "raceRocks")
-        .setOrigin(0.5, 1).setVisible(false);
+        .setOrigin(0.5, groundOriginY).setVisible(false);
       this.sceneryLayer.add(image);
       return { item, image };
     });
@@ -228,7 +230,8 @@ export class RoadRaceScene extends Phaser.Scene {
     this.hazardViews = this.hazards.map((hazard) => {
       const object = hazard.type === "sand" || hazard.type === "puddle"
         ? this.add.graphics()
-        : this.add.image(0, 0, hazard.type === "oryx" ? "raceOryx" : hazard.type === "tree" ? "raceAcacia" : "raceRocks").setOrigin(0.5, 1);
+        : this.add.image(0, 0, hazard.type === "oryx" ? "raceOryx" : hazard.type === "tree" ? "raceAcacia" : "raceRocks")
+          .setOrigin(0.5, hazard.type === "rocks" ? ROCK_GROUND_ORIGIN_Y : 1);
       object.setVisible(false);
       this.hazardLayer.add(object);
       return { hazard, object };
@@ -905,10 +908,9 @@ export class RoadRaceScene extends Phaser.Scene {
       const targetH = clamp(naturalH, 2, maxHeight);
       const targetScale = targetH / image.height;
       const targetW = image.width * targetScale;
-      const edgeMargin = item.corridor
-        ? Math.min(targetW * 0.15, this.scale.width * 0.06)
-        : Math.min(targetW * 0.46, this.scale.width * 0.15);
-      if(x < edgeMargin || x > this.scale.width - edgeMargin){
+      const outsideLeft = x + targetW * 0.5 < -this.scale.width * 0.08;
+      const outsideRight = x - targetW * 0.5 > this.scale.width * 1.08;
+      if(outsideLeft || outsideRight){
         this.fadeWorldObject(image);
         continue;
       }
