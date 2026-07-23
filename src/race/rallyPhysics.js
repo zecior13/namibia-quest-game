@@ -14,7 +14,7 @@ export const RALLY_SIMULATION = Object.freeze({
   maxFrameDelta: 0.1,
   roadHalfWidth: 1,
   oneWheelBand: 0.14,
-  hardOffroadLimit: 1.72
+  hardOffroadLimit: 1.42
 });
 
 // Loaded expedition 4x4: slower than the Lotus/OutRun reference cars, but with
@@ -56,11 +56,11 @@ export const EXPEDITION_4X4 = Object.freeze({
   slipSpeedLoss: 0.58,
 
   oneWheelTraction: 0.8,
-  bothWheelsTraction: 0.48,
+  bothWheelsTraction: 0.68,
   oneWheelSteerFactor: 0.88,
   bothWheelsSteerFactor: 0.66,
   oneWheelOffroadDecel: 1.9,
-  bothWheelsOffroadDecel: 5.4,
+  bothWheelsOffroadDecel: 2.6,
   oneWheelPull: 0.24
 });
 

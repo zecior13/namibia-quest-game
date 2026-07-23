@@ -1,5 +1,7 @@
 import { HEROES, HERO_SHEETS } from "../data/heroes.js";
 
+const clampCanvas = (value, min, max) => Math.max(min, Math.min(max, value));
+
 export class BootScene extends Phaser.Scene {
   constructor(){
     super("BootScene");
@@ -44,6 +46,7 @@ export class BootScene extends Phaser.Scene {
   create(){
     this.prepareBirdTexture();
     this.prepareHeroPortraits();
+    this.prepareHeroReactionPortraits();
     const params = new URLSearchParams(window.location.search);
     this.scene.start(params.get("race") === "gravel-crown" ? "RoadRaceScene" : "StartScene");
   }
@@ -66,6 +69,37 @@ export class BootScene extends Phaser.Scene {
         : { width: 256, height: 256 };
       this.addHeroCropTexture(`heroPortrait-${hero.id}`, source, crop, portrait.width, portrait.height);
 
+    });
+  }
+
+  prepareHeroReactionPortraits(){
+    const fullKeys = {
+      kira: "heroKiraFull", nia: "heroFull-nia", bruno: "heroFull-bruno",
+      celeste: "heroFull-celeste", tebo: "heroFull-tebo", mira: "heroFull-mira", alex: "heroFull-alex"
+    };
+    HEROES.forEach((hero) => {
+      const source = this.textures.get(fullKeys[hero.id]).getSourceImage();
+      const scan = document.createElement("canvas");
+      scan.width = source.width;
+      scan.height = source.height;
+      const scanContext = scan.getContext("2d", { willReadFrequently: true });
+      scanContext.drawImage(source, 0, 0);
+      const pixels = scanContext.getImageData(0, 0, source.width, source.height).data;
+      let left = source.width, right = 0, top = source.height, bottom = 0;
+      for(let y = 0; y < source.height; y += 2){
+        for(let x = 0; x < source.width; x += 2){
+          if(pixels[(y * source.width + x) * 4 + 3] < 24) continue;
+          left = Math.min(left, x); right = Math.max(right, x);
+          top = Math.min(top, y); bottom = Math.max(bottom, y);
+        }
+      }
+      const figureWidth = Math.max(1, right - left);
+      const figureHeight = Math.max(1, bottom - top);
+      const size = Math.min(source.width, Math.max(figureWidth * 0.72, figureHeight * 0.31));
+      const centerX = (left + right) / 2;
+      const sx = clampCanvas(centerX - size / 2, 0, source.width - size);
+      const sy = clampCanvas(top, 0, source.height - size);
+      this.addHeroCropTexture(`heroReaction-${hero.id}`, source, [sx, sy, size, size], 192, 192);
     });
   }
 
