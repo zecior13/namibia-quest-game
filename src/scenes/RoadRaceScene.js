@@ -934,7 +934,13 @@ export class RoadRaceScene extends Phaser.Scene {
     g.lineStyle(3, 0x231a13, 0.92).strokeTriangle(0, -30, -24, 12, 24, 12);
     g.lineStyle(4, 0x2b2118, 0.96);
     g.beginPath();
-    g.moveTo(-7, 4); g.cubicBezierTo(10, -2, -10, -12, 7, -20); g.strokePath();
+    g.moveTo(-7, 4);
+    g.lineTo(2, 1);
+    g.lineTo(7, -4);
+    g.lineTo(4, -10);
+    g.lineTo(-3, -14);
+    g.lineTo(7, -20);
+    g.strokePath();
   }
 
   updateCurveWarning(){
