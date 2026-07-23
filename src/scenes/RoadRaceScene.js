@@ -14,7 +14,9 @@ const FINISH_METERS = 10000;
 const BASE_TIME_LIMIT_SECONDS = 350;
 const WORLD_PROGRESS_SCALE = 2.45;
 const FINISH_APPROACH_METERS = 650;
-const ROCK_CORRIDOR_START_METERS = 8000;
+const FINAL_STRAIGHT_TRANSITION_METERS = 9000;
+const FINAL_STRAIGHT_START_METERS = 9400;
+const ROCK_CORRIDOR_START_METERS = FINAL_STRAIGHT_TRANSITION_METERS;
 const SEGMENT_METERS = 10;
 const SEGMENT_LENGTH = 200;
 const ROAD_WIDTH = 1580;
@@ -44,12 +46,12 @@ const HAZARD_HALF_WIDTH = Object.freeze({
 
 const COLORS = {
   sky: 0x8ca6a0,
-  sandLight: 0x9d6d4d,
-  sandDark: 0x986748,
+  sandLight: 0xae7148,
+  sandDark: 0xa36740,
   roadLight: 0x6c5039,
-  roadDark: 0x684b36,
-  shoulderLight: 0xa67b55,
-  shoulderDark: 0x9d724f,
+  roadDark: 0x624731,
+  shoulderLight: 0xb48a57,
+  shoulderDark: 0x956c42,
   rut: 0x3f3026,
   dust: 0xc08a54
 };
@@ -148,6 +150,36 @@ export class RoadRaceScene extends Phaser.Scene {
       this.addRoad(6, 16, 6, 0.9 * direction, -5);
       this.addRoad(8, 20, 8, 0, 1);
     }
+    this.prepareFinishStraight();
+  }
+
+  prepareFinishStraight(){
+    const anchorIndex = Math.floor(FINAL_STRAIGHT_TRANSITION_METERS / SEGMENT_METERS);
+    const targetY = this.track[anchorIndex]?.p1.world.y ?? 0;
+    const flattenProgress = (meters) => {
+      const linear = clamp(
+        (meters - FINAL_STRAIGHT_TRANSITION_METERS)
+          / (FINAL_STRAIGHT_START_METERS - FINAL_STRAIGHT_TRANSITION_METERS),
+        0,
+        1
+      );
+      return linear * linear * (3 - 2 * linear);
+    };
+
+    for(const segment of this.track){
+      const startMeters = segment.index * SEGMENT_METERS;
+      const endMeters = (segment.index + 1) * SEGMENT_METERS;
+      if(endMeters < FINAL_STRAIGHT_TRANSITION_METERS) continue;
+      const startMix = flattenProgress(startMeters);
+      const endMix = flattenProgress(endMeters);
+      segment.curve *= 1 - startMix;
+      segment.p1.world.y = Phaser.Math.Linear(segment.p1.world.y, targetY, startMix);
+      segment.p2.world.y = Phaser.Math.Linear(segment.p2.world.y, targetY, endMix);
+      if(startMeters >= FINAL_STRAIGHT_START_METERS) segment.curve = 0;
+    }
+    this.curveWarnings = this.curveWarnings.filter(
+      (warning) => warning.meters < FINAL_STRAIGHT_TRANSITION_METERS
+    );
   }
 
   addSCurve(direction, hill){
@@ -230,13 +262,15 @@ export class RoadRaceScene extends Phaser.Scene {
         { type: "oryx", meters: start + 1740, offset: 1.08 * mirror, direction: -mirror }
       );
     }
-    return hazards.map((hazard, id) => ({
-      ...hazard,
-      id,
-      hit: false,
-      crossingStarted: false,
-      crossingProgress: 0
-    }));
+    return hazards
+      .filter((hazard) => hazard.meters < FINAL_STRAIGHT_TRANSITION_METERS)
+      .map((hazard, id) => ({
+        ...hazard,
+        id,
+        hit: false,
+        crossingStarted: false,
+        crossingProgress: 0
+      }));
   }
 
   makeScenery(){
@@ -251,20 +285,20 @@ export class RoadRaceScene extends Phaser.Scene {
         scenery.push({ meters: meters + 34, type, side: -side, offset: distance + 0.38, scale: 0.68 });
       }
     }
-    for(let meters = ROCK_CORRIDOR_START_METERS; meters < FINISH_METERS + 160; meters += 112){
+    for(let meters = ROCK_CORRIDOR_START_METERS; meters < FINISH_METERS + 100; meters += 72){
       const finalTightening = clamp((meters - ROCK_CORRIDOR_START_METERS) / (FINISH_METERS - ROCK_CORRIDOR_START_METERS), 0, 1);
-      const seed = Math.floor(meters / 112);
-      const leftOffset = Phaser.Math.Linear(1.58, 1.13, finalTightening);
-      const rightOffset = Phaser.Math.Linear(1.62, 1.16, finalTightening);
-      const scale = 1.1 + (seed % 3) * 0.16 + finalTightening * 0.34;
+      const seed = Math.floor(meters / 72);
+      const leftOffset = Phaser.Math.Linear(1.58, 1.04, finalTightening);
+      const rightOffset = Phaser.Math.Linear(1.62, 1.06, finalTightening);
+      const scale = 1.9 + (seed % 3) * 0.18 + finalTightening * 3.1;
       scenery.push(
-        { meters, type: "rocks", side: -1, offset: leftOffset, scale },
-        { meters: meters + 32, type: "rocks", side: 1, offset: rightOffset, scale: scale * 1.06 }
+        { meters, type: "rocks", side: -1, offset: leftOffset, scale, corridor: true },
+        { meters: meters + 18, type: "rocks", side: 1, offset: rightOffset, scale: scale * 1.06, corridor: true }
       );
     }
     scenery.push(
-      { meters: FINISH_METERS + 34, type: "rocks", side: -1, offset: 1.08, scale: 1.9 },
-      { meters: FINISH_METERS + 40, type: "rocks", side: 1, offset: 1.14, scale: 2.02 }
+      { meters: FINISH_METERS + 22, type: "rocks", side: -1, offset: 1.01, scale: 6.2, corridor: true },
+      { meters: FINISH_METERS + 28, type: "rocks", side: 1, offset: 1.03, scale: 6.45, corridor: true }
     );
     return scenery;
   }
@@ -359,10 +393,10 @@ export class RoadRaceScene extends Phaser.Scene {
     const H = this.scale.height;
     this.landscape = W > H;
     const source = this.textures.get("raceBackdrop").getSourceImage();
-    // The panorama must retain overscan because curves shift it horizontally.
-    const bgScale = Math.max(W / source.width, H / source.height) * 1.5;
+    // Keep the illustrated mountains as a distant horizon, not as the road surface.
+    const bgScale = Math.max(W / source.width, H / source.height) * 1.18;
     this.backdropBaseScale = bgScale;
-    this.backdropBaseX = (W / 2) - (W * 0.06);
+    this.backdropBaseX = W / 2;
     this.backdropBaseY = (H * 0.19) - (source.height * 0.34 * bgScale);
     this.backdrop.setScale(bgScale).setPosition(this.backdropBaseX, this.backdropBaseY);
     this.flash.setSize(W, H);
@@ -555,6 +589,8 @@ export class RoadRaceScene extends Phaser.Scene {
       this.physicsAccumulator = 0;
     }
     if(this.finishApproachStarted && !this.finished){
+      this.drive.roadX += (0 - this.drive.roadX) * 0.08;
+      this.drive.lateralVelocity *= 0.82;
       const progress = clamp((time - this.finishApproachStartedAt) / 1900, 0, 1);
       this.finishApproachProgress = progress;
       if(progress >= 1) this.endRace(true, "SPITZKOPPE");
@@ -793,10 +829,10 @@ export class RoadRaceScene extends Phaser.Scene {
     this.visibleSegmentSet = new Set(this.visibleSegments);
     this.renderScenery();
     this.renderHazards();
-    const bend = clamp(baseSegment.curve * 0.075 + this.drive.roadX * 0.018, -0.082, 0.082);
+    const bend = clamp(baseSegment.curve * 0.04, -0.035, 0.035);
     const finishReveal = clamp((this.drive.meters - (FINISH_METERS - FINISH_APPROACH_METERS)) / FINISH_APPROACH_METERS, 0, 1);
     const arrivalZoom = this.finishApproachProgress || 0;
-    this.backdrop.setScale(this.backdropBaseScale * (1 + finishReveal * 0.18 + arrivalZoom * 0.12));
+    this.backdrop.setScale(this.backdropBaseScale * (1 + finishReveal * 0.06 + arrivalZoom * 0.05));
     this.backdrop.x = this.backdropBaseX - bend * W;
     this.backdrop.y = this.backdropBaseY + (speedRatio * 1.5) + clamp(this.drive.slope * H * 0.035, -7, 7);
   }
@@ -804,12 +840,13 @@ export class RoadRaceScene extends Phaser.Scene {
   renderSegment(segment, index, W){
     const p1 = segment.p1.screen;
     const p2 = segment.p2.screen;
-    const shoulder = COLORS.shoulderDark;
-    const road = COLORS.roadDark;
-    const sand = COLORS.sandDark;
+    const alternate = Math.floor(segment.index / 3) % 2;
+    const shoulder = alternate ? COLORS.shoulderLight : COLORS.shoulderDark;
+    const road = alternate ? COLORS.roadLight : COLORS.roadDark;
+    const sand = alternate ? COLORS.sandLight : COLORS.sandDark;
     const shoulderScale = 1.14;
-    this.quad(sand, -W * 1.5, p1.y, p1.x - p1.w * shoulderScale, p1.y, p2.x - p2.w * shoulderScale, p2.y, -W * 1.5, p2.y, 0.38);
-    this.quad(sand, p1.x + p1.w * shoulderScale, p1.y, W * 2.5, p1.y, W * 2.5, p2.y, p2.x + p2.w * shoulderScale, p2.y, 0.38);
+    this.quad(sand, -W * 1.5, p1.y, p1.x - p1.w * shoulderScale, p1.y, p2.x - p2.w * shoulderScale, p2.y, -W * 1.5, p2.y);
+    this.quad(sand, p1.x + p1.w * shoulderScale, p1.y, W * 2.5, p1.y, W * 2.5, p2.y, p2.x + p2.w * shoulderScale, p2.y);
     this.quad(shoulder, p1.x - p1.w * shoulderScale, p1.y, p1.x + p1.w * shoulderScale, p1.y, p2.x + p2.w * shoulderScale, p2.y, p2.x - p2.w * shoulderScale, p2.y);
     this.quad(road, p1.x - p1.w, p1.y, p1.x + p1.w, p1.y, p2.x + p2.w, p2.y, p2.x - p2.w, p2.y);
     if(index < 82){
@@ -862,10 +899,15 @@ export class RoadRaceScene extends Phaser.Scene {
         continue;
       }
       const naturalH = (item.type === "tree" ? 980 : 420) * (item.scale || 1) * point.scale * this.scale.height * 0.5;
-      const targetH = clamp(naturalH, 2, item.type === "tree" ? this.scale.height * 0.48 : this.scale.height * 0.28);
+      const maxHeight = item.corridor
+        ? this.scale.height * 0.86
+        : item.type === "tree" ? this.scale.height * 0.48 : this.scale.height * 0.28;
+      const targetH = clamp(naturalH, 2, maxHeight);
       const targetScale = targetH / image.height;
       const targetW = image.width * targetScale;
-      const edgeMargin = Math.min(targetW * 0.46, this.scale.width * 0.15);
+      const edgeMargin = item.corridor
+        ? Math.min(targetW * 0.15, this.scale.width * 0.06)
+        : Math.min(targetW * 0.46, this.scale.width * 0.15);
       if(x < edgeMargin || x > this.scale.width - edgeMargin){
         this.fadeWorldObject(image);
         continue;
