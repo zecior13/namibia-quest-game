@@ -38,6 +38,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image("packWarningTriangleRot", "assets/pack/items/warning-triangle-rot.png");
     this.load.image("raceBackdrop", "assets/race/spitzkoppe-rally-backdrop-v1.png?v=2");
     this.load.image("raceVehicleRear", "assets/race/expedition-4x4-rear-v2.png?v=2");
+    this.load.image("raceVehicleTurn", "assets/race/expedition-4x4-rear-turn-v1.png?v=1");
     this.load.image("raceAcacia", "assets/race/roadside-acacia-v1.png?v=2");
     this.load.image("raceOryx", "assets/race/oryx-running-v1.png?v=2");
     this.load.image("raceRocks", "assets/race/road-rocks-v1.png?v=2");
