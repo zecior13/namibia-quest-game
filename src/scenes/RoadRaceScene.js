@@ -50,22 +50,18 @@ export class RoadRaceScene extends Phaser.Scene {
 
   resetSessionState(){
     this.touchSteer = 0;
-    this.tiltSteer = 0;
-    this.controlMode = "touch";
     this.leftPointer = null;
     this.pedalPointer = null;
     this.gasHeld = false;
     this.brakeHeld = false;
     this.running = false;
     this.finished = false;
-    this.orientationReady = false;
     this.waitingForLandscape = false;
-    this.tiltNeutral = null;
-    this.tiltHandler = null;
     this.pedalLabels = {};
     this.vehicleVisualAngle = 0;
     this.wasRunningBeforeHide = false;
     this.briefing = null;
+    this.leavingRace = false;
   }
 
   create(){
@@ -200,9 +196,7 @@ export class RoadRaceScene extends Phaser.Scene {
     this.distanceText = this.add.text(0, 0, "2.20 KM", { ...hudStyle, fontSize: "12px" }).setDepth(22);
     this.damageText = this.add.text(0, 0, "AUTO 100%", { ...hudStyle, fontSize: "10px", color: "#d8bd7c" }).setDepth(22);
     this.gearText = this.add.text(0, 0, "II", { ...hudStyle, fontSize: "15px" }).setOrigin(0.5).setDepth(22);
-    this.exitRaceText = this.add.text(0, 0, "MAPA", { ...hudStyle, fontSize: "10px", color: "#d8bd7c" }).setOrigin(0.5).setDepth(31);
-    this.exitRaceZone = this.add.zone(0, 0, 68, 38).setDepth(32).setInteractive({ useHandCursor: true });
-    this.exitRaceZone.on("pointerdown", () => this.leaveRace());
+    this.exitRaceButton = this.makeHudButton("WYJDŹ", () => this.leaveRace()).setDepth(31);
     this.message = this.add.text(0, 0, "", {
       ...hudStyle, fontSize: "15px", color: "#fff1c9", stroke: "#17110c", strokeThickness: 4, align: "center"
     }).setOrigin(0.5).setDepth(23).setAlpha(0);
@@ -215,7 +209,6 @@ export class RoadRaceScene extends Phaser.Scene {
     this.gasZone = this.add.zone(0, 0, 10, 10).setOrigin(0).setDepth(29).setInteractive();
     this.brakeZone = this.add.zone(0, 0, 10, 10).setOrigin(0).setDepth(29).setInteractive();
     this.leftZone.on("pointerdown", (pointer) => {
-      if(this.controlMode !== "touch") return;
       this.leftPointer = { id: pointer.id, startX: pointer.x };
       this.steerThumb.setVisible(true).setPosition(pointer.x, pointer.y);
     });
@@ -231,6 +224,29 @@ export class RoadRaceScene extends Phaser.Scene {
     this.brakeZone.on("pointerup", (pointer) => this.releasePedal(pointer));
     this.input.on("pointerup", this.releaseControls, this);
     this.input.on("pointerupoutside", this.releaseControls, this);
+  }
+
+  makeHudButton(label, callback){
+    const container = this.add.container(0, 0);
+    const plate = this.add.graphics();
+    plate.fillStyle(0x132a32, 0.96);
+    plate.fillRoundedRect(-48, -18, 96, 36, 4);
+    plate.lineStyle(2, 0xc69b58, 0.94);
+    plate.strokeRoundedRect(-48, -18, 96, 36, 4);
+    const text = this.add.text(0, 0, label, {
+      fontFamily: "Georgia", fontSize: "11px", fontStyle: "bold", color: "#f0dfb7", letterSpacing: 1
+    }).setOrigin(0.5);
+    const zone = this.add.zone(0, 0, 108, 48).setInteractive({ useHandCursor: true });
+    zone.on("pointerdown", (pointer, localX, localY, event) => {
+      event?.stopPropagation();
+      container.setScale(0.96);
+      callback();
+    });
+    zone.on("pointerup", () => container.setScale(1));
+    zone.on("pointerout", () => container.setScale(1));
+    container.add([plate, text, zone]);
+    container.label = text;
+    return container;
   }
 
   releaseControls(pointer){ this.releaseLeft(pointer); this.releasePedal(pointer); }
@@ -263,10 +279,7 @@ export class RoadRaceScene extends Phaser.Scene {
     this.speedUnit.setPosition(W - 23, 39);
     this.damageText.setPosition(W * 0.67, 41);
     this.gearText.setPosition(W - 30, 74);
-    this.exitRaceText.setPosition(W * 0.53, 17);
-    this.exitRaceZone.setPosition(W * 0.53, 22);
-    this.exitRaceText.setVisible(this.landscape);
-    this.exitRaceZone.setVisible(this.landscape);
+    this.exitRaceButton.setPosition(W * 0.53, 23).setVisible(this.landscape && !this.leavingRace);
     this.message.setPosition(W / 2, 82);
     const vehicleH = clamp(H * 0.4, 120, 184);
     this.vehicle.setScale(vehicleH / this.vehicle.height);
@@ -299,10 +312,9 @@ export class RoadRaceScene extends Phaser.Scene {
     this.briefKicker = this.add.text(0, 0, "ROAD TO SPITZKOPPE", { fontFamily: "Georgia", fontSize: "13px", fontStyle: "bold", color: "#c99d5a", letterSpacing: 3 }).setOrigin(0.5);
     this.briefTitle = this.add.text(0, 0, "GRAVEL CROWN", { fontFamily: "Georgia", fontSize: "38px", fontStyle: "bold", color: "#f0dfb7" }).setOrigin(0.5);
     this.briefBody = this.add.text(0, 0, "", { fontFamily: "Georgia", fontSize: "15px", color: "#d9c7a0", align: "center", lineSpacing: 5 }).setOrigin(0.5);
-    this.touchButton = this.makeBriefingButton("DOTYK", () => this.startRace("touch"));
-    this.tiltButton = this.makeBriefingButton("PRZECHYŁ", () => this.startRace("tilt"));
+    this.touchButton = this.makeBriefingButton("START", () => this.startRace());
     this.briefHint = this.add.text(0, 0, "Gaz u góry · hamulec na dole · lewa strefa skrętu", { fontFamily: "Georgia", fontSize: "11px", fontStyle: "bold", color: "#aa8954" }).setOrigin(0.5);
-    this.briefing.add([this.briefShade, this.briefRule, this.briefKicker, this.briefTitle, this.briefBody, this.touchButton, this.tiltButton, this.briefHint]);
+    this.briefing.add([this.briefShade, this.briefRule, this.briefKicker, this.briefTitle, this.briefBody, this.touchButton, this.briefHint]);
     this.positionBriefing();
   }
 
@@ -330,24 +342,17 @@ export class RoadRaceScene extends Phaser.Scene {
     this.briefBody.setText(portrait
       ? "Ta trasa działa poziomo. Wyłącz blokadę obrotu ekranu, wybierz sterowanie i obróć telefon. Gra ruszy dopiero po zmianie widoku."
       : "2,2 km szutru. Zakręty, grzbiety, miękki piach i zwierzęta. Dowieź auto do Spitzkoppe.");
-    const buttonW = portrait ? clamp(W * 0.36, 128, 150) : clamp(W * 0.27, 138, 190);
-    const buttons = portrait
-      ? [[this.touchButton, W * 0.31, H * 0.66], [this.tiltButton, W * 0.69, H * 0.66]]
-      : [[this.touchButton, W * 0.38, H * 0.68], [this.tiltButton, W * 0.62, H * 0.68]];
-    for(const [button, x, y] of buttons){
-      button.setPosition(x, y);
-      button.plate.clear().fillStyle(0x183238, 0.96).fillRect(-buttonW / 2, -25, buttonW, 50).lineStyle(2, 0xc69b58, 0.92).strokeRect(-buttonW / 2, -25, buttonW, 50);
-      button.zone.setSize(buttonW, 50);
-    }
+    const buttonW = portrait ? clamp(W * 0.48, 168, 210) : clamp(W * 0.3, 180, 240);
+    this.touchButton.setPosition(W / 2, H * 0.68);
+    this.touchButton.plate.clear().fillStyle(0x183238, 0.96).fillRect(-buttonW / 2, -25, buttonW, 50).lineStyle(2, 0xc69b58, 0.92).strokeRect(-buttonW / 2, -25, buttonW, 50);
+    this.touchButton.zone.setSize(buttonW, 50);
     this.briefHint.setPosition(W / 2, H * 0.81);
   }
 
-  async startRace(mode){
-    this.controlMode = mode;
+  async startRace(){
     if(document.documentElement.requestFullscreen && !document.fullscreenElement){
       try { await document.documentElement.requestFullscreen(); } catch(error){ /* Safari may reject fullscreen. */ }
     }
-    if(mode === "tilt") await this.enableTilt();
     if(window.screen?.orientation?.lock){
       try { await window.screen.orientation.lock("landscape"); } catch(error){ /* iOS requires physical rotation. */ }
     }
@@ -408,26 +413,6 @@ export class RoadRaceScene extends Phaser.Scene {
     });
   }
 
-  async enableTilt(){
-    if(typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function"){
-      try {
-        const permission = await DeviceOrientationEvent.requestPermission();
-        if(permission !== "granted") this.controlMode = "touch";
-      }catch(error){ this.controlMode = "touch"; }
-    }
-    if(this.controlMode !== "tilt") return;
-    this.tiltHandler = (event) => {
-      const angle = window.screen?.orientation?.angle || window.orientation || 0;
-      const value = Math.abs(angle) === 90 ? event.beta : event.gamma;
-      if(value == null) return;
-      if(this.tiltNeutral == null) this.tiltNeutral = value;
-      const direction = angle === 90 ? -1 : 1;
-      const raw = clamp(((value - this.tiltNeutral) / 22) * direction, -1, 1);
-      this.tiltSteer += (raw - this.tiltSteer) * 0.2;
-    };
-    window.addEventListener("deviceorientation", this.tiltHandler, true);
-  }
-
   update(time, deltaMs){
     this.drawControlArtwork();
     if(this.running && !this.finished){
@@ -454,7 +439,7 @@ export class RoadRaceScene extends Phaser.Scene {
     const drive = this.drive;
     const gas = this.gasHeld || this.keys.up.isDown || this.wasd.W.isDown;
     const brake = this.brakeHeld || this.keys.down.isDown || this.wasd.S.isDown;
-    let steer = this.controlMode === "tilt" ? this.tiltSteer : this.touchSteer;
+    let steer = this.touchSteer;
     if(this.keys.left.isDown || this.wasd.A.isDown) steer = -1;
     if(this.keys.right.isDown || this.wasd.D.isDown) steer = 1;
     const playerSegment = this.findSegment(drive.position + PLAYER_Z);
@@ -719,13 +704,8 @@ export class RoadRaceScene extends Phaser.Scene {
     const steeringY = H - 42;
     this.controls.clear();
     this.controls.lineStyle(2, 0xd3b06c, 0.5);
-    if(this.controlMode === "touch"){
-      this.controls.beginPath().arc(steeringX, steeringY + 10, W * 0.105, Math.PI * 1.12, Math.PI * 1.88, false).strokePath();
-      this.controls.lineBetween(steeringX - W * 0.075, steeringY - 12, steeringX + W * 0.075, steeringY - 12);
-    }else{
-      this.controls.strokeCircle(steeringX, steeringY - 6, 21);
-      this.controls.lineBetween(steeringX, steeringY - 6, steeringX + this.tiltSteer * 18, steeringY - 14);
-    }
+    this.controls.beginPath().arc(steeringX, steeringY + 10, W * 0.105, Math.PI * 1.12, Math.PI * 1.88, false).strokePath();
+    this.controls.lineBetween(steeringX - W * 0.075, steeringY - 12, steeringX + W * 0.075, steeringY - 12);
     this.paintPedal(W * 0.87, top + 2, W * 0.09, (H - top) * 0.42, "GAZ", this.gasHeld);
     this.paintPedal(W * 0.87, top + (H - top) * 0.53, W * 0.12, (H - top) * 0.42, "HAMULEC", this.brakeHeld);
   }
@@ -760,25 +740,63 @@ export class RoadRaceScene extends Phaser.Scene {
     this.tweens.add({ targets: this.message, alpha: 0, delay: duration, duration: 220 });
   }
 
-  async leaveRace(){
+  leaveRace(){
+    if(this.leavingRace) return;
+    this.leavingRace = true;
     this.running = false;
     this.finished = true;
     this.gasHeld = false;
     this.brakeHeld = false;
     this.touchSteer = 0;
-    this.tiltSteer = 0;
+    this.exitRaceButton.setVisible(false);
     const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
     window.history.replaceState({}, "", cleanUrl);
+    this.showExitTransition();
+    try { window.screen?.orientation?.unlock?.(); } catch(error){ /* Optional browser API. */ }
     if(window.screen?.orientation?.lock){
-      try { await window.screen.orientation.lock("portrait"); } catch(error){ /* iOS does not expose orientation lock. */ }
+      try {
+        const request = window.screen.orientation.lock("portrait");
+        request?.catch?.(() => {});
+      }catch(error){ /* iOS does not expose orientation lock. */ }
     }
     if(document.fullscreenElement && document.exitFullscreen){
-      try { await document.exitFullscreen(); } catch(error){ /* Continue to the map even if fullscreen cannot be closed. */ }
+      try {
+        const request = document.exitFullscreen();
+        request?.catch?.(() => {});
+      }catch(error){ /* Continue even if fullscreen cannot be closed. */ }
     }
-    this.scene.start("MapScene");
-    window.setTimeout(() => {
-      try { window.screen?.orientation?.unlock?.(); } catch(error){ /* Optional browser API. */ }
-    }, 350);
+    this.waitForPortraitThenOpenMap();
+  }
+
+  showExitTransition(){
+    const W = this.scale.width;
+    const H = this.scale.height;
+    this.exitTransition = this.add.container(0, 0).setDepth(100);
+    const shade = this.add.rectangle(0, 0, W, H, 0x071012, 0.96).setOrigin(0);
+    const title = this.add.text(W / 2, H * 0.42, "WRACAMY DO WYPRAWY", {
+      fontFamily: "Georgia", fontSize: `${clamp(W * 0.038, 22, 34)}px`, fontStyle: "bold", color: "#f0dfb7"
+    }).setOrigin(0.5);
+    const body = this.add.text(W / 2, H * 0.54, this.scale.width > this.scale.height
+      ? "Obróć telefon pionowo.\nWracamy do wyprawy."
+      : "Wracamy do wyprawy.", {
+      fontFamily: "Georgia", fontSize: "14px", color: "#c9ad75", align: "center", lineSpacing: 5
+    }).setOrigin(0.5);
+    this.exitTransition.add([shade, title, body]);
+  }
+
+  waitForPortraitThenOpenMap(){
+    const coarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches;
+    const check = () => {
+      if(!this.sys.isActive()) return;
+      const portrait = window.innerHeight >= window.innerWidth;
+      if(!coarsePointer || portrait){
+        this.scale.refresh();
+        this.scene.start("MapScene");
+        return;
+      }
+      this.exitPoll = window.setTimeout(check, 180);
+    };
+    this.exitPoll = window.setTimeout(check, 180);
   }
 
   endRace(success, title){
@@ -792,7 +810,7 @@ export class RoadRaceScene extends Phaser.Scene {
     const heading = this.add.text(W / 2, H * 0.3, title, { fontFamily: "Georgia", fontSize: `${clamp(W * 0.042, 24, 38)}px`, fontStyle: "bold", color: success ? "#efd797" : "#df8a62", align: "center", wordWrap: { width: W * 0.76 } }).setOrigin(0.5);
     const result = this.add.text(W / 2, H * 0.44, `${Math.min(FINISH_METERS, this.drive.meters).toFixed(0)} m  ·  ${Math.round(this.drive.elapsed)} s  ·  auto ${Math.round(100 - this.drive.damage)}%`, { fontFamily: "Georgia", fontSize: "14px", color: "#d6c29a" }).setOrigin(0.5);
     const retry = this.makeBriefingButton("JESZCZE RAZ", () => this.scene.restart()).setPosition(W * 0.4, H * 0.66);
-    const exit = this.makeBriefingButton("MAPA", () => this.leaveRace()).setPosition(W * 0.68, H * 0.66);
+    const exit = this.makeBriefingButton(success ? "DALEJ" : "WYJDŹ", () => this.leaveRace()).setPosition(W * 0.68, H * 0.66);
     for(const button of [retry, exit]){
       button.plate.clear().fillStyle(0x183238, 0.96).fillRect(-80, -25, 160, 50).lineStyle(2, 0xc69b58, 0.92).strokeRect(-80, -25, 160, 50);
       button.zone.setSize(160, 50);
@@ -804,10 +822,9 @@ export class RoadRaceScene extends Phaser.Scene {
     this.scale.off("resize", this.layout, this);
     this.input.off("pointerup", this.releaseControls, this);
     this.input.off("pointerupoutside", this.releaseControls, this);
-    if(this.tiltHandler) window.removeEventListener("deviceorientation", this.tiltHandler, true);
     if(this.visibilityHandler) document.removeEventListener("visibilitychange", this.visibilityHandler);
     if(this.orientationHandler) window.removeEventListener("orientationchange", this.orientationHandler);
-    this.tiltHandler = null;
+    if(this.exitPoll) window.clearTimeout(this.exitPoll);
     this.visibilityHandler = null;
     this.orientationHandler = null;
   }
