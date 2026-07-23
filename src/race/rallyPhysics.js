@@ -20,13 +20,13 @@ export const RALLY_SIMULATION = Object.freeze({
 // Loaded expedition 4x4: slower than the Lotus/OutRun reference cars, but with
 // the same arcade response model and enough momentum to make gravel demanding.
 export const EXPEDITION_4X4 = Object.freeze({
-  topSpeedKmh: 188,
-  topSpeedMps: 188 * KMH_TO_MPS,
-  hardLimitMps: 194 * KMH_TO_MPS,
-  engineAccel: 6.25,
-  accelExponent: 2.1,
-  rollingResistance: 0.4,
-  aeroResistance: 1.08,
+  topSpeedKmh: 90,
+  topSpeedMps: 90 * KMH_TO_MPS,
+  hardLimitMps: 92 * KMH_TO_MPS,
+  engineAccel: 7.1,
+  accelExponent: 1.72,
+  rollingResistance: 0.34,
+  aeroResistance: 0.92,
   brakeDecel: 10.4,
   hillGravityScale: 0.2,
   topSpeedDamping: 4.5,

@@ -11,7 +11,9 @@ import { HEROES } from "../data/heroes.js";
 const clamp = Phaser.Math.Clamp;
 
 const FINISH_METERS = 10000;
-const BASE_TIME_LIMIT_SECONDS = 400;
+const BASE_TIME_LIMIT_SECONDS = 350;
+const WORLD_PROGRESS_SCALE = 1.36;
+const FINISH_APPROACH_METERS = 850;
 const SEGMENT_METERS = 10;
 const SEGMENT_LENGTH = 200;
 const ROAD_WIDTH = 1580;
@@ -79,6 +81,7 @@ export class RoadRaceScene extends Phaser.Scene {
     this.engineAudio = null;
     this.musicClock = null;
     this.musicStep = 0;
+    this.finishApproachStarted = false;
   }
 
   create(){
@@ -217,7 +220,7 @@ export class RoadRaceScene extends Phaser.Scene {
         { type: "rocks", meters: start + 340, offset: -0.5 * mirror },
         { type: "sand", meters: start + 690, offset: 0.26 * mirror },
         { type: "puddle", meters: start + 1010, offset: -0.32 * mirror },
-        { type: "tree", meters: start + 1390, offset: 0.72 * mirror },
+        { type: "tree", meters: start + 1390, offset: 1.12 * mirror },
         { type: "oryx", meters: start + 1740, offset: 1.08 * mirror, direction: -mirror }
       );
     }
@@ -226,13 +229,20 @@ export class RoadRaceScene extends Phaser.Scene {
 
   makeScenery(){
     const scenery = [];
-    for(let meters = 120; meters < FINISH_METERS + 900; meters += 115){
-      const seed = Math.floor(meters / 115);
-      const type = seed % 5 === 0 || seed % 7 === 0 ? "tree" : "rocks";
+    for(let meters = 90; meters < FINISH_METERS + 900; meters += 72){
+      const seed = Math.floor(meters / 72);
+      const type = seed % 4 === 0 ? "rocks" : "tree";
       const side = seed % 2 === 0 ? -1 : 1;
       const distance = type === "tree" ? 1.45 + (seed % 4) * 0.24 : 1.22 + (seed % 5) * 0.2;
       scenery.push({ meters, type, side, offset: distance });
+      if(type === "tree" && seed % 3 === 0){
+        scenery.push({ meters: meters + 18, type, side: -side, offset: distance + 0.32 });
+      }
     }
+    scenery.push(
+      { meters: FINISH_METERS + 34, type: "rocks", side: -1, offset: 1.08, scale: 2.5 },
+      { meters: FINISH_METERS + 38, type: "rocks", side: 1, offset: 1.18, scale: 2.8 }
+    );
     return scenery;
   }
 
@@ -247,7 +257,7 @@ export class RoadRaceScene extends Phaser.Scene {
     this.distanceText = this.add.text(0, 0, "2.20 KM", { ...hudStyle, fontSize: "12px" }).setDepth(22);
     this.timeText = this.add.text(0, 0, "01:55", { ...hudStyle, fontSize: "12px", color: "#f0d18e" }).setDepth(22);
     this.damageText = this.add.text(0, 0, "AUTO 100%", { ...hudStyle, fontSize: "11px", color: "#d8bd7c" }).setDepth(22);
-    this.heroBonusText = this.add.text(0, 0, `TEMPO ${this.hero.stats.tempo}  ·  ${this.formatTime(this.timeLimit)}`, {
+    this.heroBonusText = this.add.text(0, 0, this.hero.name, {
       ...hudStyle, fontSize: "8px", color: "#bfa36d"
     }).setDepth(22);
     this.gearText = this.add.text(0, 0, "II", { ...hudStyle, fontSize: "15px" }).setOrigin(0.5).setDepth(22);
@@ -351,7 +361,8 @@ export class RoadRaceScene extends Phaser.Scene {
     this.message.setPosition(W / 2, 82);
     this.curveWarning.setPosition(W / 2, 102);
     const vehicleH = clamp(H * 0.4, 120, 184);
-    this.vehicle.setScale(vehicleH / this.vehicle.height);
+    this.vehicleBaseScale = vehicleH / this.vehicle.height;
+    this.vehicle.setScale(this.vehicleBaseScale);
     this.vehicleBaseY = H - 8;
     this.vehicleShadow.setSize(vehicleH * 0.83, vehicleH * 0.12);
     const controlTop = H - Math.max(112, H * 0.34);
@@ -519,6 +530,11 @@ export class RoadRaceScene extends Phaser.Scene {
     }else{
       this.physicsAccumulator = 0;
     }
+    if(this.finishApproachStarted && !this.finished){
+      const progress = clamp((time - this.finishApproachStartedAt) / 1900, 0, 1);
+      this.finishApproachProgress = progress;
+      if(progress >= 1) this.endRace(true, "SPITZKOPPE");
+    }
     this.renderWorld();
     this.renderVehicle();
     this.updateHud();
@@ -549,8 +565,8 @@ export class RoadRaceScene extends Phaser.Scene {
       drive.lateralVelocity *= -0.16;
     }
     const currentKmh = speedKmh(drive);
-    if(drive.offRoad && currentKmh > 94) drive.damage += 1.25 * dt;
-    else if(drive.oneWheelOff && currentKmh > 125) drive.damage += 0.35 * dt;
+    if(drive.offRoad && currentKmh > 62) drive.damage += 1.25 * dt;
+    else if(drive.oneWheelOff && currentKmh > 78) drive.damage += 0.35 * dt;
     if(drive.offRoad && drive.speedMps > 22 / 3.6){
       drive.speedMps = Math.max(22 / 3.6, drive.speedMps - 18 * dt);
     }
@@ -562,7 +578,7 @@ export class RoadRaceScene extends Phaser.Scene {
       drive.puddleSlowRemaining = Math.max(0, drive.puddleSlowRemaining - dt);
       drive.speedMps = Math.min(drive.speedMps, 20 / 3.6);
     }
-    const metersPerSecond = drive.speedMps;
+    const metersPerSecond = drive.speedMps * WORLD_PROGRESS_SCALE;
     drive.meters += metersPerSecond * dt;
     drive.position += metersPerSecond * dt * (SEGMENT_LENGTH / SEGMENT_METERS);
     drive.elapsed += dt;
@@ -570,7 +586,7 @@ export class RoadRaceScene extends Phaser.Scene {
     this.handleHazards();
     if(drive.damage >= 100) this.endRace(false, "AUTO NIE WYTRZYMAŁO TRASY");
     else if(drive.timeRemaining <= 0) this.endRace(false, "CZAS MINĄŁ");
-    else if(drive.meters >= FINISH_METERS) this.endRace(true, "SPITZKOPPE NA HORYZONCIE");
+    else if(drive.meters >= FINISH_METERS) this.beginFinishApproach();
   }
 
   handleHazards(){
@@ -625,10 +641,25 @@ export class RoadRaceScene extends Phaser.Scene {
     }
   }
 
+  beginFinishApproach(){
+    if(this.finishApproachStarted || this.finished) return;
+    this.finishApproachStarted = true;
+    this.finishApproachStartedAt = this.time.now;
+    this.finishApproachProgress = 0;
+    this.running = false;
+    this.gasHeld = false;
+    this.brakeHeld = false;
+    this.touchSteer = 0;
+    this.drive.meters = FINISH_METERS;
+    this.drive.roadX *= 0.45;
+    this.triggerHeroReaction("finish", 2600);
+    this.showMessage("SPITZKOPPE  ·  META", 1700);
+  }
+
   hazardOffset(hazard, ahead){
     if(hazard.type !== "oryx") return hazard.offset;
     // The animal reaches the road centre at the same depth as the player's car.
-    const progress = clamp((80 - ahead) / 90, 0, 1);
+    const progress = clamp((145 - ahead) / 170, 0, 1);
     return Phaser.Math.Linear(hazard.offset, -hazard.offset, progress);
   }
 
@@ -670,7 +701,7 @@ export class RoadRaceScene extends Phaser.Scene {
     const playerPercent = percentRemaining(this.drive.position + PLAYER_Z, SEGMENT_LENGTH);
     const playerY = Phaser.Math.Linear(playerSegment.p1.world.y, playerSegment.p2.world.y, playerPercent);
     const speedRatio = clamp(this.drive.speedMps / EXPEDITION_4X4.topSpeedMps, 0, 1);
-    this.projectionDepth = CAMERA_DEPTH * Phaser.Math.Linear(0.84, 1.3, speedRatio);
+    this.projectionDepth = CAMERA_DEPTH * Phaser.Math.Linear(0.84, 1.48, speedRatio);
     const accelerationPitch = clamp(this.drive.acceleration / 12, -0.035, 0.025);
     const hillPitch = clamp(this.drive.slope * 0.09, -0.035, 0.035);
     this.horizonY = H * (0.36 + accelerationPitch + hillPitch);
@@ -704,6 +735,9 @@ export class RoadRaceScene extends Phaser.Scene {
     this.renderScenery(visibleSegments);
     this.renderHazards(visibleSegments);
     const bend = clamp(baseSegment.curve * 0.075 + this.drive.roadX * 0.018, -0.082, 0.082);
+    const finishReveal = clamp((this.drive.meters - (FINISH_METERS - FINISH_APPROACH_METERS)) / FINISH_APPROACH_METERS, 0, 1);
+    const arrivalZoom = this.finishApproachProgress || 0;
+    this.backdrop.setScale(this.backdropBaseScale * (1 + finishReveal * 0.18 + arrivalZoom * 0.12));
     this.backdrop.x = W / 2 - bend * W;
     this.backdrop.y = -H * 0.08 + (speedRatio * 1.5) + clamp(this.drive.slope * H * 0.035, -7, 7);
   }
@@ -747,19 +781,19 @@ export class RoadRaceScene extends Phaser.Scene {
     for(const view of this.sceneryViews){
       const { item, image } = view;
       const ahead = item.meters - this.drive.meters;
-      if(ahead < -15 || ahead > DRAW_DISTANCE * SEGMENT_METERS){ image.setVisible(false); continue; }
+      if(ahead < -15 || ahead > DRAW_DISTANCE * SEGMENT_METERS){ this.fadeWorldObject(image); continue; }
       const index = Math.floor(item.meters / SEGMENT_METERS) % this.track.length;
       const segment = visibleByIndex.get(index);
-      if(!segment){ image.setVisible(false); continue; }
+      if(!segment){ this.fadeWorldObject(image); continue; }
       const ratio = (item.meters % SEGMENT_METERS) / SEGMENT_METERS;
       const point = this.projectedPoint(segment, ratio);
       const x = point.x + point.w * item.offset * item.side;
       const y = point.y + 1;
       if(y < this.horizonY || y > this.scale.height + 8){
-        image.setVisible(false);
+        this.fadeWorldObject(image);
         continue;
       }
-      const targetH = (item.type === "tree" ? 1320 : 500) * point.scale * this.scale.height * 0.5;
+      const targetH = (item.type === "tree" ? 1320 : 500) * (item.scale || 1) * point.scale * this.scale.height * 0.5;
       const horizonFade = clamp((y - this.horizonY) / 68, 0, 1);
       const distanceFade = clamp((DRAW_DISTANCE * SEGMENT_METERS - ahead) / 180, 0, 1);
       image.setVisible(true).setAlpha(horizonFade * distanceFade).setPosition(x, y).setScale(targetH / image.height).setFlipX(item.side < 0).setDepth(Math.floor(y));
@@ -772,7 +806,7 @@ export class RoadRaceScene extends Phaser.Scene {
       const { hazard, object } = view;
       const index = Math.floor(hazard.meters / SEGMENT_METERS) % this.track.length;
       const segment = visibleByIndex.get(index);
-      if(!segment || hazard.meters < this.drive.meters - 12){ object.setVisible(false); continue; }
+      if(!segment || hazard.meters < this.drive.meters - 12){ this.fadeWorldObject(object); continue; }
       const ahead = hazard.meters - this.drive.meters;
       const offset = this.hazardOffset(hazard, ahead);
       const ratio = (hazard.meters % SEGMENT_METERS) / SEGMENT_METERS;
@@ -780,46 +814,45 @@ export class RoadRaceScene extends Phaser.Scene {
       const x = point.x + point.w * offset;
       const y = point.y;
       const scale = point.scale;
-      object.setVisible(true).setPosition(x, y).setDepth(Math.floor(y) + 1);
+      object.setVisible(true).setAlpha(1).setPosition(x, y).setDepth(Math.floor(y) + 1);
       if(hazard.type === "sand"){
         object.clear();
         const width = Math.max(8, point.w * HAZARD_HALF_WIDTH.sand * 2);
-        const height = Math.max(3, width * 0.22);
+        const height = Math.max(2, width * 0.12);
         const edge = [];
         for(let n = 0; n < 18; n++){
           const angle = (n / 18) * Math.PI * 2;
           const wobble = 0.86 + Math.sin(n * 2.7 + hazard.id) * 0.08;
           edge.push(new Phaser.Geom.Point(
             Math.cos(angle) * width * 0.5 * wobble,
-            -height * 0.42 + Math.sin(angle) * height * 0.5 * wobble
+            -height * 0.18 + Math.sin(angle) * height * 0.5 * wobble
           ));
         }
-        object.fillStyle(0x63472f, 0.35).fillEllipse(0, -height * 0.25, width * 1.04, height * 0.92);
-        object.fillStyle(0xb67c45, 0.98).fillPoints(edge, true);
-        object.fillStyle(0x8e6039, 0.68).fillEllipse(0, -height * 0.38, width * 0.74, height * 0.44);
-        object.lineStyle(Math.max(1, height * 0.055), 0xd5ab6d, 0.62);
+        object.fillStyle(0x7a5436, 0.52).fillEllipse(0, -height * 0.14, width * 1.03, height * 0.9);
+        object.fillStyle(0xb27945, 0.9).fillPoints(edge, true);
+        object.lineStyle(Math.max(1, height * 0.05), 0xd2a66b, 0.52);
         for(let n = -2; n <= 2; n++){
           object.beginPath();
-          object.moveTo(n * width * 0.15, -height * 0.78);
-          object.lineTo(n * width * 0.11, -height * 0.12);
+          object.moveTo(n * width * 0.15, -height * 0.48);
+          object.lineTo(n * width * 0.11, height * 0.05);
           object.strokePath();
         }
-        object.lineStyle(Math.max(1, height * 0.04), 0x62432e, 0.48);
-        object.strokeEllipse(0, -height * 0.38, width * 0.53, height * 0.24);
       }else if(hazard.type === "puddle"){
         object.clear();
         const width = Math.max(10, point.w * HAZARD_HALF_WIDTH.puddle * 2);
-        const height = Math.max(3, width * 0.19);
-        const ripple = 0.93 + Math.sin(this.time.now * 0.006 + hazard.id) * 0.04;
-        object.fillStyle(0x315d68, 0.42).fillEllipse(0, -height * 0.2, width * 1.06, height);
-        object.fillStyle(0x4f8b94, 0.72).fillEllipse(0, -height * 0.32, width * ripple, height * 0.7);
-        object.lineStyle(Math.max(1, height * 0.06), 0xa7d0cd, 0.7).strokeEllipse(0, -height * 0.34, width * 0.68 * ripple, height * 0.35);
-        object.lineStyle(Math.max(1, height * 0.04), 0x1f4a55, 0.62).strokeEllipse(0, -height * 0.3, width * 0.38, height * 0.18);
+        const height = Math.max(2, width * 0.1);
+        object.fillStyle(0x315d68, 0.54).fillEllipse(0, -height * 0.14, width * 1.04, height);
+        object.fillStyle(0x5a9298, 0.6).fillEllipse(0, -height * 0.2, width * 0.82, height * 0.58);
+        object.lineStyle(Math.max(1, height * 0.05), 0xa7d0cd, 0.58).strokeEllipse(0, -height * 0.2, width * 0.57, height * 0.28);
       }else{
         const targetH = (hazard.type === "oryx" ? 440 : hazard.type === "tree" ? 1180 : 300) * scale * this.scale.height * 0.5;
         object.setScale(targetH / object.height).setFlipX(hazard.type === "oryx" && hazard.direction < 0);
       }
     }
+  }
+
+  fadeWorldObject(object){
+    object.setVisible(false).setAlpha(0);
   }
 
   hideWorldSprites(){
@@ -839,23 +872,34 @@ export class RoadRaceScene extends Phaser.Scene {
     const x = clamp(rawX, this.vehicle.displayWidth * 0.34, W - this.vehicle.displayWidth * 0.34);
     const pitch = clamp(this.drive.slope * -1.8, -2.8, 2.8);
     const targetAngle = clamp(
-      this.drive.steering * movingRatio * (9 + speedRatio * 8) +
-      this.drive.lateralVelocity * 3.2 +
-      this.drive.slipDirection * this.drive.slip * 6.2,
-      -18,
-      18
+      this.drive.steering * movingRatio * (2.2 + speedRatio * 2.2) +
+      this.drive.lateralVelocity * 0.65 +
+      this.drive.slipDirection * this.drive.slip * 1.8,
+      -5.5,
+      5.5
     );
     this.vehicleVisualAngle += (targetAngle - this.vehicleVisualAngle) * 0.24;
     const roadTexture = Math.sin(this.drive.position * 0.019) * 0.7 + Math.sin(this.drive.position * 0.043) * 0.28;
     const terrainRoughness = this.drive.offRoad ? 2.2 : this.drive.oneWheelOff ? 1.1 : 0.48;
     const movingRoughness = this.running ? roadTexture * speedRatio * terrainRoughness : 0;
     const offRoadRoughness = this.running && this.drive.offRoad ? Math.sin(this.drive.position * 0.087) * speedRatio * 1.2 : 0;
-    const y = this.vehicleBaseY + movingRoughness + offRoadRoughness;
-    this.vehicle.setPosition(x, y).setAngle(this.vehicleVisualAngle + pitch * 0.15);
-    this.vehicleShadow.setPosition(x, y - this.vehicle.displayHeight * 0.03).setAngle(this.vehicleVisualAngle * 0.32);
+    const finishProgress = this.finishApproachProgress || 0;
+    const arrivalY = Phaser.Math.Linear(this.vehicleBaseY, this.horizonY + H * 0.16, finishProgress);
+    const y = arrivalY + movingRoughness + offRoadRoughness;
+    const yawLead = this.vehicleVisualAngle * W * 0.0026;
+    const finishScale = Phaser.Math.Linear(1, 0.28, finishProgress);
+    const yawCompression = 1 - Math.abs(this.vehicleVisualAngle) * 0.014;
+    this.vehicle
+      .setPosition(x + yawLead, y)
+      .setScale(this.vehicleBaseScale * yawCompression * finishScale, this.vehicleBaseScale * finishScale)
+      .setAngle(this.vehicleVisualAngle * 0.42 + pitch * 0.12);
+    this.vehicleShadow
+      .setPosition(x, y - this.vehicle.displayHeight * 0.03)
+      .setScale(finishScale)
+      .setAngle(0);
     this.dust.setPosition(x, y - this.vehicle.displayHeight * 0.06);
     const currentKmh = speedKmh(this.drive);
-    const dustOn = currentKmh > 25 && (this.drive.offRoad || this.drive.oneWheelOff || currentKmh > 92);
+    const dustOn = currentKmh > 20 && (this.drive.offRoad || this.drive.oneWheelOff || currentKmh > 58);
     this.dust.setFrequency(dustOn ? clamp(94 - currentKmh * 0.34, 26, 90) : -1);
     this.renderHeroReaction(speedRatio);
   }
@@ -863,7 +907,7 @@ export class RoadRaceScene extends Phaser.Scene {
   renderHeroReaction(speedRatio){
     if(!this.heroPortrait?.visible) return;
     const active = this.heroReaction && this.time.now < this.heroReaction.until;
-    const highSpeedStress = clamp((speedRatio - (0.48 + this.hero.stats.tempo * 0.025)) / 0.25, 0, 1);
+    const highSpeedStress = clamp((speedRatio - (0.34 + this.hero.stats.tempo * 0.018)) / 0.3, 0, 1);
     let angle = Math.sin(this.time.now * 0.025) * highSpeedStress * 1.6;
     let scale = 1 + highSpeedStress * 0.035;
     let x = 15;
@@ -874,7 +918,8 @@ export class RoadRaceScene extends Phaser.Scene {
       scale += this.heroReaction.type === "shock" ? 0.07 : 0.035;
     }
     const reactionKey = `heroReaction-${this.hero.id}`;
-    const targetTexture = active && this.textures.exists(reactionKey) ? reactionKey : `heroPortrait-${this.hero.id}`;
+    const showReaction = active || highSpeedStress > 0.42;
+    const targetTexture = showReaction && this.textures.exists(reactionKey) ? reactionKey : `heroPortrait-${this.hero.id}`;
     if(this.heroPortrait.texture.key !== targetTexture) this.heroPortrait.setTexture(targetTexture);
     this.heroPortrait.setPosition(x, 8).setScale(1).setDisplaySize(44 * scale, 44 * scale).setAngle(angle);
   }
@@ -922,7 +967,7 @@ export class RoadRaceScene extends Phaser.Scene {
     this.timeText.setText(`CZAS ${this.formatTime(this.drive.timeRemaining)}`)
       .setColor(this.drive.timeRemaining < 20 ? "#e47a55" : "#f0d18e");
     this.damageText.setText(`AUTO ${Math.max(0, Math.round(100 - this.drive.damage))}%`).setColor(this.drive.damage > 65 ? "#d67652" : "#d8bd7c");
-    this.gearText.setText(currentKmh < 30 ? "I" : currentKmh < 85 ? "II" : currentKmh < 135 ? "III" : "IV");
+    this.gearText.setText(currentKmh < 28 ? "I" : currentKmh < 62 ? "II" : "III");
     this.updateCurveWarning();
     this.updateRaceAudio(currentKmh);
   }
@@ -977,14 +1022,27 @@ export class RoadRaceScene extends Phaser.Scene {
     this.audioContext = new AudioContextClass();
     this.audioContext.resume?.();
     if(this.audioSettings.sfx){
-      const oscillator = this.audioContext.createOscillator();
-      const gain = this.audioContext.createGain();
-      oscillator.type = "sawtooth";
-      oscillator.frequency.value = 42;
-      gain.gain.value = 0.018;
-      oscillator.connect(gain).connect(this.audioContext.destination);
-      oscillator.start();
-      this.engineAudio = { oscillator, gain };
+      const master = this.audioContext.createGain();
+      const filter = this.audioContext.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 190;
+      master.gain.value = 0.012;
+      filter.connect(master).connect(this.audioContext.destination);
+      const low = this.audioContext.createOscillator();
+      const pulse = this.audioContext.createOscillator();
+      low.type = "triangle";
+      pulse.type = "sawtooth";
+      low.frequency.value = 31;
+      pulse.frequency.value = 15.5;
+      const lowGain = this.audioContext.createGain();
+      const pulseGain = this.audioContext.createGain();
+      lowGain.gain.value = 0.68;
+      pulseGain.gain.value = 0.22;
+      low.connect(lowGain).connect(filter);
+      pulse.connect(pulseGain).connect(filter);
+      low.start();
+      pulse.start();
+      this.engineAudio = { oscillators: [low, pulse], master, filter };
     }
     if(this.audioSettings.music){
       this.musicClock = window.setInterval(() => this.playMusicNote(), 430);
@@ -994,8 +1052,10 @@ export class RoadRaceScene extends Phaser.Scene {
   updateRaceAudio(kmh){
     if(!this.engineAudio || !this.audioContext) return;
     const now = this.audioContext.currentTime;
-    this.engineAudio.oscillator.frequency.setTargetAtTime(42 + kmh * 0.72, now, 0.06);
-    this.engineAudio.gain.gain.setTargetAtTime(this.running ? 0.012 + kmh / 13000 : 0.004, now, 0.08);
+    this.engineAudio.oscillators[0].frequency.setTargetAtTime(31 + kmh * 0.28, now, 0.08);
+    this.engineAudio.oscillators[1].frequency.setTargetAtTime(15.5 + kmh * 0.14, now, 0.08);
+    this.engineAudio.filter.frequency.setTargetAtTime(175 + kmh * 2.1, now, 0.1);
+    this.engineAudio.master.gain.setTargetAtTime(this.running ? 0.011 + kmh / 18000 : 0.0035, now, 0.1);
   }
 
   playMusicNote(){
@@ -1034,7 +1094,9 @@ export class RoadRaceScene extends Phaser.Scene {
   stopRaceAudio(){
     if(this.musicClock) window.clearInterval(this.musicClock);
     this.musicClock = null;
-    try { this.engineAudio?.oscillator?.stop(); } catch(error){ /* Already stopped. */ }
+    for(const oscillator of this.engineAudio?.oscillators || []){
+      try { oscillator.stop(); } catch(error){ /* Already stopped. */ }
+    }
     this.engineAudio = null;
     this.audioContext?.close?.();
     this.audioContext = null;
