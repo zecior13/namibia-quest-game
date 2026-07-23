@@ -5,6 +5,7 @@ import { MapScene } from "./scenes/MapScene.js?v=6";
 import { WindhoekScene } from "./scenes/WindhoekScene.js";
 import { GearScene } from "./scenes/GearScene.js";
 import { PackScene } from "./scenes/PackScene.js";
+import { RoadRaceScene } from "./scenes/RoadRaceScene.js?v=6";
 
 const config = {
   type: Phaser.AUTO,
@@ -26,7 +27,8 @@ const config = {
     MapScene,
     WindhoekScene,
     GearScene,
-    PackScene
+    PackScene,
+    RoadRaceScene
   ]
 };
 

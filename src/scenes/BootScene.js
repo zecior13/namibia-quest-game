@@ -34,12 +34,18 @@ export class BootScene extends Phaser.Scene {
     this.load.image("packFoodCrateRot", "assets/pack/items/food-crate-rot.png");
     this.load.image("packExtinguisherRot", "assets/pack/items/fire-extinguisher-rot.png");
     this.load.image("packWarningTriangleRot", "assets/pack/items/warning-triangle-rot.png");
+    this.load.image("raceBackdrop", "assets/race/spitzkoppe-rally-backdrop-v1.png?v=2");
+    this.load.image("raceVehicleRear", "assets/race/expedition-4x4-rear-v2.png?v=2");
+    this.load.image("raceAcacia", "assets/race/roadside-acacia-v1.png?v=2");
+    this.load.image("raceOryx", "assets/race/oryx-running-v1.png?v=2");
+    this.load.image("raceRocks", "assets/race/road-rocks-v1.png?v=2");
   }
 
   create(){
     this.prepareBirdTexture();
     this.prepareHeroPortraits();
-    this.scene.start("StartScene");
+    const params = new URLSearchParams(window.location.search);
+    this.scene.start(params.get("race") === "gravel-crown" ? "RoadRaceScene" : "StartScene");
   }
 
   prepareHeroPortraits(){
